@@ -84,103 +84,78 @@
             }
         }
 
-        // ================= XUẤT MÃ KÉP (NÉN DỮ LIỆU) =================
+        // ================= XUẤT MÃ ĐỒNG BỘ TOÀN DIỆN =================
         function exportCode() {
-            const savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
-            const watchHistory = JSON.parse(localStorage.getItem('watchHistory')) || {};
-            
-            const savedSlugs = Object.keys(savedMovies).join(','); // Dạng: phim-A,phim-B
-            
-            // Xử lý Lịch sử (Đóng gói ID, Tập, Thời gian)
-            const histArr = Object.keys(watchHistory).map(slug => {
-                const h = watchHistory[slug];
-                return `${slug}|${h.epName}|${h.time}`; // Dạng: phim-C|Tập 3|17000000
-            });
-            const histStr = histArr.join(',');
+            const saved = JSON.parse(localStorage.getItem('savedMovies')) || {};
+            const history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+            const progress = JSON.parse(localStorage.getItem('videoProgress')) || {};
 
-            const finalData = `${savedSlugs}@@${histStr}`; // Ngăn cách 2 mảng bằng @@
-            
-            if (finalData === '@@') return alert("Bạn chưa có Tủ Phim hay Lịch sử nào để đồng bộ!");
+            // Gộp cả 3 loại dữ liệu vào 1 gói
+            const exportData = {
+                s: Object.keys(saved), // ID tủ phim
+                h: history,            // Lịch sử đang xem
+                p: progress            // Số giây đang xem của từng phim
+            };
 
-            const code = btoa(finalData); 
+            if (exportData.s.length === 0 && Object.keys(exportData.h).length === 0) {
+                return alert("Tủ phim và Lịch sử đều trống, không có gì để xuất!");
+            }
+
+            // Mã hóa dữ liệu (Hỗ trợ tiếng Việt)
+            const code = btoa(encodeURIComponent(JSON.stringify(exportData))); 
             syncCodeInput.value = code;
 
             try {
                 navigator.clipboard.writeText(code);
-                alert("Đã TỰ ĐỘNG COPY mã Đồng Bộ Kép!\nBạn có thể dán sang máy khác để khôi phục cả Tủ Phim và Lịch sử đang xem.");
+                alert("Đã COPY mã Đồng Bộ!");
             } catch(e) {
                 alert("Đã tạo mã! Vui lòng bôi đen và copy đoạn mã trong ô.");
             }
         }
 
-        // ================= NHẬP MÃ THÔNG MINH =================
+        // ================= NHẬP MÃ ĐỒNG BỘ TOÀN DIỆN =================
         async function importCode() {
             const code = syncCodeInput.value.trim();
             if (!code) return alert("Vui lòng dán mã đồng bộ vào ô trống!");
             
             try {
-                let decoded = atob(code);
-                // Hỗ trợ mã cũ (chưa có dấu @@)
-                if (!decoded.includes('@@')) decoded = decoded + '@@';
-                
-                const parts = decoded.split('@@');
-                const savedSlugs = parts[0] ? parts[0].split(',') : [];
-                const histItems = parts[1] ? parts[1].split(',') : [];
+                // Giải mã dữ liệu
+                const decoded = decodeURIComponent(atob(code));
+                const importData = JSON.parse(decoded);
                 
                 syncCodeInput.value = 'Đang kéo dữ liệu về máy... Vui lòng đợi!';
                 
+                // 1. Phục hồi Lịch sử (watchHistory) và Số giây (videoProgress)
+                if (importData.h) localStorage.setItem('watchHistory', JSON.stringify(importData.h));
+                if (importData.p) localStorage.setItem('videoProgress', JSON.stringify(importData.p));
+
+                // 2. Phục hồi Tủ Phim (Cần gọi API để lấy lại ảnh)
                 let currentSaved = JSON.parse(localStorage.getItem('savedMovies')) || {};
-                let currentHist = JSON.parse(localStorage.getItem('watchHistory')) || {};
-
-                // Hàm hỗ trợ gọi API rút gọn
-                async function fetchMovieData(slug) {
-                    try {
-                        const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
-                        const data = await res.json();
-                        if(data.status === 'success' && data.data && data.data.item) {
-                            const m = data.data.item;
-                            const imgDomain = data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
-                            let posterUrl = m.thumb_url || m.poster_url;
-                            if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
-                            return { name: m.name, thumb: posterUrl, year: m.year };
-                        }
-                    } catch (err) {}
-                    return null;
-                }
-
-                // 1. Phục hồi Tủ Phim
-                for(let slug of savedSlugs) {
-                    if(slug && !currentSaved[slug]) {
-                        const mData = await fetchMovieData(slug);
-                        if(mData) currentSaved[slug] = mData;
-                    }
-                }
-
-                // 2. Phục hồi Lịch Sử Đang Xem
-                for(let item of histItems) {
-                    if (item) {
-                        const [slug, epName, timeStr] = item.split('|');
-                        if(slug && !currentHist[slug]) {
-                            const mData = await fetchMovieData(slug);
-                            if(mData) {
-                                currentHist[slug] = {
-                                    name: mData.name,
-                                    thumb: mData.thumb,
-                                    year: mData.year,
-                                    epName: epName || "Tập ?",
-                                    time: parseInt(timeStr) || Date.now()
-                                };
-                            }
-                        }
-                    }
-                }
-
-                localStorage.setItem('savedMovies', JSON.stringify(currentSaved));
-                localStorage.setItem('watchHistory', JSON.stringify(currentHist));
                 
+                if (importData.s && importData.s.length > 0) {
+                    for(let slug of importData.s) {
+                        if(slug && !currentSaved[slug]) {
+                            try {
+                                const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
+                                const data = await res.json();
+                                if(data.status === 'success' && data.data && data.data.item) {
+                                    const movie = data.data.item;
+                                    const imgDomain = data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
+                                    let posterUrl = movie.thumb_url || movie.poster_url;
+                                    if (posterUrl && !posterUrl.startsWith('http')) {
+                                        posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+                                    }
+                                    currentSaved[slug] = { name: movie.name, thumb: posterUrl, year: movie.year };
+                                }
+                            } catch (err) { console.log("Lỗi: ", slug); }
+                        }
+                    }
+                    localStorage.setItem('savedMovies', JSON.stringify(currentSaved));
+                }
+
                 loadSavedMovies();
                 syncCodeInput.value = '';
-                alert("Đồng bộ thành công! Hãy ra Trang chủ để xem Lịch sử vừa được cập nhật.");
+                alert("Đồng bộ thành công 100%!");
 
             } catch (e) {
                 alert("Mã không hợp lệ! Vui lòng kiểm tra lại.");
