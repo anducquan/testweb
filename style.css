@@ -1,0 +1,75 @@
+:root {
+    --primary-color: #e50914;
+    --bg-color: #141414;
+    --text-color: #ffffff;
+    --card-bg: #2f2f2f;
+}
+
+body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+a { text-decoration: none; color: inherit; }
+
+/* ================= HEADER & MENU ================= */
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: #000; position: sticky; top: 0; z-index: 1000; gap: 15px;}
+.header-left { display: flex; align-items: center; gap: 30px; }
+.logo { font-size: 24px; font-weight: bold; color: var(--primary-color); }
+
+/* Thanh điều hướng */
+.nav-menu { display: flex; gap: 20px; font-weight: 500; font-size: 15px;}
+.nav-menu a:hover { color: #aaa; }
+
+/* Nút thả xuống (Dropdown) */
+.dropdown { position: relative; display: inline-block; cursor: pointer; padding-bottom: 10px; margin-bottom: -10px;}
+.dropdown-content { 
+    display: none; position: absolute; background-color: #000; border: 1px solid #333; 
+    min-width: 150px; z-index: 2000; border-radius: 4px; top: 100%; left: 0;
+}
+.dropdown-content a { color: white; padding: 10px 15px; text-decoration: none; display: block; font-size: 14px;}
+.dropdown-content a:hover { background-color: #333; color: var(--primary-color);}
+.dropdown:hover .dropdown-content { display: block; }
+
+.header-right { display: flex; align-items: center; gap: 20px; }
+.tu-phim-btn { font-weight: bold; }
+.search-box input { padding: 8px 15px; border-radius: 20px; border: none; outline: none; background: #333; color: white; width: 200px;}
+
+/* ================= GIAO DIỆN PHIM ================= */
+.container { max-width: 1200px; margin: 20px auto; padding: 0 15px; overflow: hidden; }
+h2.section-title { border-left: 5px solid var(--primary-color); padding-left: 10px; margin-bottom: 15px; font-size: 20px;}
+
+/* Lưới phim */
+.movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
+
+/* Hàng ngang */
+.movie-row { display: flex; overflow-x: auto; gap: 15px; padding-bottom: 15px; scroll-behavior: smooth; }
+.movie-row::-webkit-scrollbar { height: 6px; }
+.movie-row::-webkit-scrollbar-track { background: transparent; }
+.movie-row::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
+.movie-row::-webkit-scrollbar-thumb:hover { background: var(--primary-color); }
+
+/* Thẻ Phim */
+.movie-card { background: var(--card-bg); border-radius: 8px; overflow: hidden; transition: transform 0.3s; cursor: pointer; flex: 0 0 auto; width: 160px; position: relative; }
+.movie-card:hover { transform: scale(1.05); z-index: 10; box-shadow: 0 0 15px rgba(0,0,0,0.8);}
+.movie-poster-container { position: relative; }
+.movie-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+
+.imdb-badge { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: #f5c518; padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 2; }
+.movie-info { padding: 10px; }
+.movie-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+.movie-year { font-size: 12px; color: #bbb; margin-top: 5px;}
+
+/* Chi tiết phim */
+.detail-container { display: flex; gap: 30px; flex-wrap: wrap; }
+.detail-poster-img { width: 300px; border-radius: 10px; box-shadow: 0 0 20px rgba(229,9,20,0.3); }
+.detail-info { flex: 1; min-width: 300px; }
+.episodes-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.ep-btn { padding: 10px 20px; background: #333; color: white; border-radius: 5px; transition: 0.3s; }
+.ep-btn:hover { background: var(--primary-color); }
+
+/* Mobile */
+@media (max-width: 768px) {
+    .header-left { flex-direction: column; align-items: flex-start; gap: 10px;}
+    .nav-menu { flex-wrap: wrap; gap: 15px; font-size: 14px;}
+    .search-box input { width: 100%; }
+    .header-right { width: 100%; justify-content: space-between; margin-top: 10px;}
+    .movie-row .movie-card { width: 130px; }
+    .movie-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}

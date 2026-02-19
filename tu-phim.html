@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tủ Phim Của Tôi</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .header-links a { color: white; margin-left: 20px; font-weight: bold; }
+        .sync-box { background: #333; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        .sync-box input { padding: 10px; width: 60%; border-radius: 5px; border: none; outline: none; margin-right: 10px;}
+        .sync-btn { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        
+        .movie-card { position: relative; }
+        .delete-btn {
+            position: absolute; top: 5px; left: 5px; background: rgba(229, 9, 20, 0.9);
+            color: white; border: none; border-radius: 50%; width: 25px; height: 25px;
+            font-size: 12px; font-weight: bold; cursor: pointer; z-index: 20; display: flex;
+            align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .delete-btn:hover { transform: scale(1.1); background: #ff0a16; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">NETFLIX FAKE</a>
+        <div class="header-links">
+            <a href="index.html">🏠 Trang chủ</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">Phim Đã Lưu</h2>
+        
+        <div class="sync-box">
+            <h3>Đồng bộ thiết bị (Siêu tốc)</h3>
+            <p style="font-size: 14px; color: #bbb;">Bấm "Lấy Mã" để tạo mã siêu ngắn. Sang máy khác dán mã này vào rồi bấm "Nhập Mã" để khôi phục tủ phim.</p>
+            <input type="text" id="syncCodeInput" placeholder="Dán mã đồng bộ vào đây...">
+            <button class="sync-btn" onclick="exportCode()">Lấy Mã Của Tôi</button>
+            <button class="sync-btn" style="background: #28a745;" onclick="importCode()">Nhập Mã</button>
+        </div>
+
+        <div class="movie-grid" id="savedGrid"></div>
+    </div>
+
+    <script>
+        const savedGrid = document.getElementById('savedGrid');
+        const syncCodeInput = document.getElementById('syncCodeInput');
+        
+        function loadSavedMovies() {
+            const savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
+            savedGrid.innerHTML = '';
+            
+            const slugs = Object.keys(savedMovies);
+            if (slugs.length === 0) {
+                savedGrid.innerHTML = '<p>Bạn chưa lưu bộ phim nào. Hãy ra Trang chủ và thả tim vài bộ phim nhé!</p>';
+                return;
+            }
+
+            slugs.forEach(slug => {
+                const movie = savedMovies[slug];
+                const card = document.createElement('div');
+                card.classList.add('movie-card');
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="deleteMovie('${slug}')" title="Xóa khỏi tủ phim">✕</button>
+                    <a href="detail.html?slug=${slug}" style="text-decoration: none; color: inherit; display: block;">
+                        <img src="${movie.thumb}" alt="${movie.name}" class="movie-poster" loading="lazy">
+                        <div class="movie-info">
+                            <div class="movie-title">${movie.name}</div>
+                            <div class="movie-year">${movie.year || ''}</div>
+                        </div>
+                    </a>
+                `;
+                savedGrid.appendChild(card);
+            });
+        }
+
+        function deleteMovie(slug) {
+            if(confirm('Bạn có chắc muốn xóa phim này khỏi Tủ Phim?')) {
+                let savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
+                delete savedMovies[slug]; 
+                localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
+                loadSavedMovies(); 
+            }
+        }
+
+        // ================= ĐÃ SỬA: XUẤT MÃ SIÊU NGẮN =================
+        function exportCode() {
+            const savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
+            const slugs = Object.keys(savedMovies); // Chỉ lấy ID (slug)
+            
+            if (slugs.length === 0) return alert("Tủ phim trống! Hãy lưu vài bộ phim trước.");
+
+            // Chỉ ghép các ID lại với nhau rồi nén
+            const code = btoa(slugs.join(',')); 
+            syncCodeInput.value = code;
+
+            // Tự động Copy vào bộ nhớ tạm của điện thoại/máy tính
+            try {
+                navigator.clipboard.writeText(code);
+                alert("Đã tạo mã NGẮN GỌN thành công!\n\nĐã TỰ ĐỘNG COPY mã, bạn chỉ cần gửi qua Zalo/Mess và dán sang máy khác nhé.");
+            } catch(e) {
+                alert("Đã tạo mã! Vui lòng bôi đen và copy đoạn mã trong ô.");
+            }
+        }
+
+        // ================= ĐÃ SỬA: NHẬP MÃ THÔNG MINH =================
+        async function importCode() {
+            const code = syncCodeInput.value.trim();
+            if (!code) return alert("Vui lòng dán mã đồng bộ vào ô trống!");
+            
+            try {
+                // Giải nén ra danh sách ID phim
+                const slugsStr = atob(code);
+                const slugs = slugsStr.split(',');
+                
+                syncCodeInput.value = 'Đang kéo dữ liệu phim về máy... Vui lòng đợi!';
+                let currentSaved = JSON.parse(localStorage.getItem('savedMovies')) || {};
+
+                // Tự động gọi API lấy lại ảnh và tên phim cho từng ID
+                for(let slug of slugs) {
+                    if(slug && !currentSaved[slug]) {
+                        try {
+                            const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
+                            const data = await res.json();
+                            if(data.status === 'success' && data.data && data.data.item) {
+                                const movie = data.data.item;
+                                const imgDomain = data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
+                                let posterUrl = movie.thumb_url || movie.poster_url;
+                                if (posterUrl && !posterUrl.startsWith('http')) {
+                                    posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+                                }
+                                currentSaved[slug] = { name: movie.name, thumb: posterUrl, year: movie.year };
+                            }
+                        } catch (err) {
+                            console.log("Lỗi tải thông tin phim: ", slug);
+                        }
+                    }
+                }
+
+                // Cất vào bộ nhớ và load lại giao diện
+                localStorage.setItem('savedMovies', JSON.stringify(currentSaved));
+                loadSavedMovies();
+                syncCodeInput.value = '';
+                alert("Đồng bộ thành công! Các phim mới đã được thêm vào tủ.");
+
+            } catch (e) {
+                alert("Mã không hợp lệ! Vui lòng kiểm tra lại.");
+                syncCodeInput.value = '';
+            }
+        }
+
+        loadSavedMovies();
+    </script>
+</body>
+</html>

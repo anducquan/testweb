@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Phim Chill</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="logo">NETFLIX FAKE</a>
+            <nav class="nav-menu">
+                <a href="index.html">Trang chủ</a>
+                
+                <div class="dropdown">
+                    <span style="display:inline-block">Thể loại ▾</span>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="loadCategory('the-loai/hanh-dong', 'Phim Hành Động')">Hành Động</a>
+                        <a href="#" onclick="loadCategory('the-loai/tinh-cam', 'Phim Tình Cảm')">Tình Cảm</a>
+                        <a href="#" onclick="loadCategory('the-loai/hai-huoc', 'Phim Hài Hước')">Hài Hước</a>
+                        <a href="#" onclick="loadCategory('the-loai/kinh-di', 'Phim Kinh Dị')">Kinh Dị</a>
+                        <a href="#" onclick="loadCategory('the-loai/hoat-hinh', 'Phim Hoạt Hình')">Hoạt Hình</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <span style="display:inline-block">Quốc gia ▾</span>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="loadCategory('quoc-gia/han-quoc', 'Phim Hàn Quốc')">Hàn Quốc</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/trung-quoc', 'Phim Trung Quốc')">Trung Quốc</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/au-my', 'Phim Âu Mỹ')">Âu Mỹ</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/nhat-ban', 'Phim Nhật Bản')">Nhật Bản</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/thai-lan', 'Phim Thái Lan')">Thái Lan</a>
+                    </div>
+                </div>
+
+                <a href="#" onclick="loadCategory('danh-sach/phim-bo', 'Phim Bộ Mới')">Phim Bộ</a>
+                <a href="#" onclick="loadCategory('danh-sach/phim-chieu-rap', 'Phim Chiếu Rạp')">Phim Chiếu Rạp</a>
+            </nav>
+        </div>
+
+        <div class="header-right">
+            <a href="tu-phim.html" class="tu-phim-btn">❤️ Tủ Phim</a>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm phim...">
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="homeSections">
+            <h2 class="section-title">Phim Mới Cập Nhật</h2>
+            <div class="movie-row" id="row-new"><p>Đang tải...</p></div>
+
+            <h2 class="section-title">Hành Động Mỹ - Âu</h2>
+            <div class="movie-row" id="row-usuk"><p>Đang tải...</p></div>
+
+            <h2 class="section-title">Phim Hàn Quốc Tuyển Chọn</h2>
+            <div class="movie-row" id="row-korea"><p>Đang tải...</p></div>
+
+            <h2 class="section-title">Phim Hoa Ngữ (Trung Quốc)</h2>
+            <div class="movie-row" id="row-china"><p>Đang tải...</p></div>
+        </div>
+
+        <div id="searchSection" style="display: none;">
+            <h2 class="section-title" id="searchTitle">Danh sách</h2>
+            <div class="movie-grid" id="searchGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_DOMAIN = 'https://ophim1.com';
+        const homeSections = document.getElementById('homeSections');
+        const searchSection = document.getElementById('searchSection');
+        const searchGrid = document.getElementById('searchGrid');
+        const searchInput = document.getElementById('searchInput');
+
+        // Hàm gọi API
+        async function fetchMovies(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return {
+                    items: data.data.items || [],
+                    imgDomain: data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live'
+                };
+            } catch (error) {
+                console.error('Lỗi:', error);
+                return { items: [], imgDomain: '' };
+            }
+        }
+
+        // Tạo thẻ Phim HTML
+        function createCardHTML(movie, imgDomain) {
+            let posterUrl = movie.thumb_url || movie.poster_url;
+            if (posterUrl && !posterUrl.startsWith('http')) {
+                posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+            }
+
+            let badgeHTML = `<div class="imdb-badge" style="color:white; background: var(--primary-color);">HD</div>`;
+            if (movie.tmdb && movie.tmdb.vote_average > 0) badgeHTML = `<div class="imdb-badge">⭐ ${movie.tmdb.vote_average.toFixed(1)}</div>`;
+            else if (movie.imdb && movie.imdb.score > 0) badgeHTML = `<div class="imdb-badge">⭐ ${movie.imdb.score}</div>`;
+
+            return `
+                <a href="detail.html?slug=${movie.slug}" class="movie-card">
+                    <div class="movie-poster-container">
+                        ${badgeHTML}
+                        <img src="${posterUrl}" alt="${movie.name}" class="movie-poster" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-title">${movie.name}</div>
+                        <div class="movie-year">${movie.year || 'Đang cập nhật'}</div>
+                    </div>
+                </a>
+            `;
+        }
+
+        // Load các hàng ngang ở trang chủ
+        async function loadRow(path, elementId) {
+            const rowElement = document.getElementById(elementId);
+            const result = await fetchMovies(`${API_DOMAIN}/v1/api/${path}`);
+            
+            rowElement.innerHTML = '';
+            if (result.items.length === 0) return rowElement.innerHTML = '<p>Không có phim nào.</p>';
+            result.items.forEach(movie => rowElement.innerHTML += createCardHTML(movie, result.imgDomain));
+        }
+
+        // KHỞI CHẠY TRANG CHỦ
+        loadRow('home', 'row-new');
+        loadRow('quoc-gia/au-my', 'row-usuk');
+        loadRow('quoc-gia/han-quoc', 'row-korea');
+        loadRow('quoc-gia/trung-quoc', 'row-china');
+
+        // ================= HÀM XỬ LÝ KHI BẤM VÀO MENU =================
+        async function loadCategory(apiPath, titleName) {
+            // Ẩn trang chủ, hiện khu vực lưới
+            homeSections.style.display = 'none';
+            searchSection.style.display = 'block';
+            document.getElementById('searchTitle').textContent = titleName;
+            
+            searchGrid.innerHTML = '<p>Đang tải dữ liệu...</p>';
+            const result = await fetchMovies(`${API_DOMAIN}/v1/api/${apiPath}`);
+            
+            searchGrid.innerHTML = '';
+            if(result.items.length === 0) {
+                searchGrid.innerHTML = '<p>Không có dữ liệu.</p>';
+            } else {
+                result.items.forEach(movie => {
+                    searchGrid.innerHTML += createCardHTML(movie, result.imgDomain);
+                });
+            }
+        }
+
+        // ================= XỬ LÝ TÌM KIẾM =================
+        searchInput.addEventListener('keypress', async (e) => {
+            if(e.key === 'Enter' && searchInput.value.trim()) {
+                const keyword = searchInput.value.trim();
+                loadCategory(`tim-kiem?keyword=${encodeURIComponent(keyword)}`, `Kết quả tìm kiếm: "${keyword}"`);
+            }
+        });
+
+        // Xóa chữ tìm kiếm thì quay về trang chủ
+        searchInput.addEventListener('input', () => {
+            if (searchInput.value.trim() === '') {
+                homeSections.style.display = 'block';
+                searchSection.style.display = 'none';
+                document.getElementById('searchTitle').textContent = 'Danh sách';
+            }
+        });
+    </script>
+</body>
+</html>
