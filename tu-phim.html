@@ -6,10 +6,16 @@
     <title>Tủ Phim Của Tôi</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .header-links a { color: white; margin-left: 20px; font-weight: bold; }
-        .sync-box { background: #333; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
-        .sync-box input { padding: 10px; width: 60%; border-radius: 5px; border: none; outline: none; margin-right: 10px;}
-        .sync-btn { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        .header-links a { color: white; margin-left: 20px; font-weight: bold; text-decoration: none;}
+        
+        .sync-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #333;}
+        .sync-box h3 { margin-top: 0; color: #fff; }
+        .sync-box input { padding: 12px; width: calc(100% - 24px); border-radius: 5px; border: none; outline: none; margin-bottom: 10px; background: #333; color: white; font-family: monospace;}
+        .sync-btn-group { display: flex; gap: 10px; }
+        .sync-btn { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; flex: 1; transition: 0.2s;}
+        .sync-btn:hover { background: #ff0a16; }
+        .sync-btn.import { background: #28a745; }
+        .sync-btn.import:hover { background: #218838; }
         
         .movie-card { position: relative; }
         .delete-btn {
@@ -30,16 +36,17 @@
     </header>
 
     <div class="container">
-        <h2 class="section-title">Phim Đã Lưu</h2>
-        
         <div class="sync-box">
-            <h3>Đồng bộ Kép (Tủ Phim & Lịch Sử)</h3>
-            <p style="font-size: 14px; color: #bbb;">Mã này chứa cả danh sách phim yêu thích và phim bạn đang xem dở. Tự động Copy khi bấm "Lấy Mã".</p>
+            <h3>🔄 Đồng bộ Kép (Mã Siêu Ngắn)</h3>
+            <p style="font-size: 14px; color: #bbb; margin-top: 0;">Mã này chứa toàn bộ <b>Tủ Phim</b>, <b>Lịch sử đang xem</b> và <b>Số giây xem dở</b>. Tự động Copy khi bấm "Lấy Mã".</p>
             <input type="text" id="syncCodeInput" placeholder="Dán mã đồng bộ vào đây...">
-            <button class="sync-btn" onclick="exportCode()">Lấy Mã Của Tôi</button>
-            <button class="sync-btn" style="background: #28a745;" onclick="importCode()">Nhập Mã</button>
+            <div class="sync-btn-group">
+                <button class="sync-btn" onclick="exportCode()">📤 Lấy Mã Của Tôi</button>
+                <button class="sync-btn import" onclick="importCode()">📥 Nhập Mã Phục Hồi</button>
+            </div>
         </div>
 
+        <h2 class="section-title">❤️ Phim Đã Lưu</h2>
         <div class="movie-grid" id="savedGrid"></div>
     </div>
 
@@ -47,17 +54,18 @@
         const savedGrid = document.getElementById('savedGrid');
         const syncCodeInput = document.getElementById('syncCodeInput');
         
+        // ================= HIỂN THỊ VÀ XÓA TỦ PHIM =================
         function loadSavedMovies() {
             const savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
             savedGrid.innerHTML = '';
             
             const slugs = Object.keys(savedMovies);
             if (slugs.length === 0) {
-                savedGrid.innerHTML = '<p>Bạn chưa lưu bộ phim nào.</p>';
+                savedGrid.innerHTML = '<p style="color: #aaa;">Bạn chưa lưu bộ phim nào vào tủ.</p>';
                 return;
             }
 
-            slugs.forEach(slug => {
+            slugs.reverse().forEach(slug => {
                 const movie = savedMovies[slug];
                 const card = document.createElement('div');
                 card.classList.add('movie-card');
@@ -67,7 +75,7 @@
                         <img src="${movie.thumb}" alt="${movie.name}" class="movie-poster" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
                         <div class="movie-info">
                             <div class="movie-title">${movie.name}</div>
-                            <div class="movie-year">${movie.year || ''}</div>
+                            <div class="movie-year">${movie.year || 'Đang cập nhật'}</div>
                         </div>
                     </a>
                 `;
@@ -75,94 +83,119 @@
             });
         }
 
-        function deleteMovie(slug) {
+        window.deleteMovie = function(slug) {
             if(confirm('Bạn có chắc muốn xóa phim này khỏi Tủ Phim?')) {
                 let savedMovies = JSON.parse(localStorage.getItem('savedMovies')) || {};
                 delete savedMovies[slug]; 
                 localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
                 loadSavedMovies(); 
             }
-        }
+        };
 
-        // ================= XUẤT MÃ ĐỒNG BỘ TOÀN DIỆN =================
-        function exportCode() {
+        // ================= XUẤT MÃ ĐỒNG BỘ ÉP XUNG (SIÊU NGẮN) =================
+        window.exportCode = function() {
             const saved = JSON.parse(localStorage.getItem('savedMovies')) || {};
             const history = JSON.parse(localStorage.getItem('watchHistory')) || {};
             const progress = JSON.parse(localStorage.getItem('videoProgress')) || {};
 
-            // Gộp cả 3 loại dữ liệu vào 1 gói
-            const exportData = {
-                s: Object.keys(saved), // ID tủ phim
-                h: history,            // Lịch sử đang xem
-                p: progress            // Số giây đang xem của từng phim
-            };
+            // 1. Tủ phim cách nhau bằng dấu phẩy
+            const sSlugs = Object.keys(saved).join(',');
 
-            if (exportData.s.length === 0 && Object.keys(exportData.h).length === 0) {
-                return alert("Tủ phim và Lịch sử đều trống, không có gì để xuất!");
-            }
+            // 2. Lịch sử dạng: id:tập:số_giây (VD: venom:3:120)
+            const hItems = Object.keys(history).map(slug => {
+                let ep = history[slug].epName ? history[slug].epName.replace('Tập ', '').replace('Full', 'F').trim() : '';
+                let p = progress[slug] || 0;
+                return `${slug}:${ep}:${p}`;
+            }).join(',');
 
-            // Mã hóa dữ liệu (Hỗ trợ tiếng Việt)
-            const code = btoa(encodeURIComponent(JSON.stringify(exportData))); 
+            // Dấu * ngăn cách giữa Tủ Phim và Lịch Sử
+            const code = `${sSlugs}*${hItems}`;
+            if (code === '*') return alert("Bạn chưa có Tủ Phim hay Lịch sử nào để xuất!");
+
             syncCodeInput.value = code;
-
             try {
                 navigator.clipboard.writeText(code);
-                alert("Đã COPY mã Đồng Bộ!");
+                alert("Đã COPY MÃ THÀNH CÔNG!");
             } catch(e) {
-                alert("Đã tạo mã! Vui lòng bôi đen và copy đoạn mã trong ô.");
+                alert("Đã tạo mã! Vui lòng bôi đen và copy đoạn mã trong ô nhé.");
             }
-        }
+        };
 
-        // ================= NHẬP MÃ ĐỒNG BỘ TOÀN DIỆN =================
-        async function importCode() {
+        // ================= NHẬP MÃ ĐỒNG BỘ ÉP XUNG =================
+        window.importCode = async function() {
             const code = syncCodeInput.value.trim();
             if (!code) return alert("Vui lòng dán mã đồng bộ vào ô trống!");
+            if (!code.includes('*')) return alert("Mã không hợp lệ! Vui lòng kiểm tra lại.");
             
             try {
-                // Giải mã dữ liệu
-                const decoded = decodeURIComponent(atob(code));
-                const importData = JSON.parse(decoded);
+                const parts = code.split('*');
+                const savedSlugs = parts[0] ? parts[0].split(',') : [];
+                const histItems = parts[1] ? parts[1].split(',') : [];
                 
-                syncCodeInput.value = 'Đang kéo dữ liệu về máy... Vui lòng đợi!';
+                syncCodeInput.value = '⏳ Đang tải lại dữ liệu...';
                 
-                // 1. Phục hồi Lịch sử (watchHistory) và Số giây (videoProgress)
-                if (importData.h) localStorage.setItem('watchHistory', JSON.stringify(importData.h));
-                if (importData.p) localStorage.setItem('videoProgress', JSON.stringify(importData.p));
-
-                // 2. Phục hồi Tủ Phim (Cần gọi API để lấy lại ảnh)
                 let currentSaved = JSON.parse(localStorage.getItem('savedMovies')) || {};
-                
-                if (importData.s && importData.s.length > 0) {
-                    for(let slug of importData.s) {
-                        if(slug && !currentSaved[slug]) {
-                            try {
-                                const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
-                                const data = await res.json();
-                                if(data.status === 'success' && data.data && data.data.item) {
-                                    const movie = data.data.item;
-                                    const imgDomain = data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
-                                    let posterUrl = movie.thumb_url || movie.poster_url;
-                                    if (posterUrl && !posterUrl.startsWith('http')) {
-                                        posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
-                                    }
-                                    currentSaved[slug] = { name: movie.name, thumb: posterUrl, year: movie.year };
-                                }
-                            } catch (err) { console.log("Lỗi: ", slug); }
+                let currentHist = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                let currentProg = JSON.parse(localStorage.getItem('videoProgress')) || {};
+
+                // Hàm hỗ trợ gọi OPhim để lấy lại ảnh + tên phim bị thiếu do nén mã
+                async function getMovieInfo(slug) {
+                    try {
+                        const res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
+                        const data = await res.json();
+                        if(data.status === 'success' && data.data && data.data.item) {
+                            const m = data.data.item;
+                            const imgDomain = data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
+                            let posterUrl = m.thumb_url || m.poster_url;
+                            if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+                            return { name: m.name, thumb: posterUrl, year: m.year };
                         }
-                    }
-                    localStorage.setItem('savedMovies', JSON.stringify(currentSaved));
+                    } catch(e) {}
+                    return null;
                 }
 
+                // 1. Phục hồi Tủ Phim
+                for(let slug of savedSlugs) {
+                    if(slug && !currentSaved[slug]) {
+                        const info = await getMovieInfo(slug);
+                        if(info) currentSaved[slug] = info;
+                    }
+                }
+
+                // 2. Phục hồi Lịch Sử Tập và Số Giây đang xem dở
+                for(let item of histItems) {
+                    if(item) {
+                        const [slug, ep, p] = item.split(':');
+                        if(slug) {
+                            const info = currentSaved[slug] || await getMovieInfo(slug);
+                            if(info) {
+                                let epNameFormated = ep === 'F' ? 'Full' : (ep ? 'Tập ' + ep : 'Tập ?');
+                                currentHist[slug] = {
+                                    name: info.name, thumb: info.thumb, year: info.year,
+                                    epName: epNameFormated, time: Date.now()
+                                };
+                                if (parseInt(p) > 0) currentProg[slug] = parseInt(p);
+                            }
+                        }
+                    }
+                }
+
+                // Lưu tất cả vào bộ nhớ trình duyệt
+                localStorage.setItem('savedMovies', JSON.stringify(currentSaved));
+                localStorage.setItem('watchHistory', JSON.stringify(currentHist));
+                localStorage.setItem('videoProgress', JSON.stringify(currentProg));
+                
                 loadSavedMovies();
                 syncCodeInput.value = '';
-                alert("Đồng bộ thành công 100%!");
+                alert("🎉 ĐỒNG BỘ THÀNH CÔNG!\nKéo sang Trang Chủ để xem Lịch Sử nhé.");
 
             } catch (e) {
-                alert("Mã không hợp lệ! Vui lòng kiểm tra lại.");
+                alert("Mã lỗi hoặc máy chủ phim đang quá tải. Vui lòng thử lại sau!");
                 syncCodeInput.value = '';
             }
-        }
+        };
 
+        // Khởi chạy khi mở trang
         loadSavedMovies();
     </script>
 </body>
