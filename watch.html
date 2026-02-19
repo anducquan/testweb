@@ -7,17 +7,28 @@
     <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        /* Đã thay đổi 100vh thành 100dvh để tự động khít với trình duyệt điện thoại */
+        /* Khóa chặt body vào màn hình, hỗ trợ 100dvh cho mobile đời mới */
         body, html { 
             margin: 0; padding: 0; 
-            width: 100%; height: 100dvh; 
+            width: 100%; height: 100%; height: 100dvh; 
             background-color: #000; overflow: hidden; 
+            position: fixed; top: 0; left: 0;
         }
-        .artplayer-app { width: 100%; height: 100%; }
         
-        /* Nút quay lại nằm gọn góc trái, z-index cao để không bị đè */
-        .back-btn { position: fixed; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.6); color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-family: sans-serif; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);}
-        .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; }
+        /* Khung video ép full 100% không cho tràn */
+        .artplayer-app { 
+            position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+            width: 100%; height: 100%; 
+            padding-bottom: env(safe-area-inset-bottom); /* Né dải đen vuốt Home trên iPhone */
+        }
+        
+        .back-btn { 
+            position: absolute; top: 15px; left: 15px; z-index: 9999; 
+            background: rgba(0,0,0,0.6); color: white; padding: 8px 15px; 
+            border-radius: 5px; text-decoration: none; font-family: sans-serif; 
+            backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);
+        }
+        .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; position: relative; z-index: 10;}
     </style>
 </head>
 <body>
@@ -48,8 +59,9 @@
                 fullscreen: true, 
                 fullscreenWeb: true, 
                 playsInline: true, 
-                autoOrientation: true, // Thêm: Tự động xoay ngang khi xem trên đth
-                lockDeviceOrientation: true, // Thêm: Khóa xoay lung tung khi đang xem Fullscreen
+                autoSize: true, // Ép video tự co giãn vừa khung
+                autoOrientation: true, // Xoay ngang màn hình
+                lockDeviceOrientation: true, // Khóa màn hình khi full
                 theme: '#e50914',
                 customType: {
                     m3u8: function (video, url, art) {
@@ -76,7 +88,6 @@
                                     });
                                 }
                             });
-
                             art.on('destroy', () => hls.destroy());
                         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                             video.src = url;
