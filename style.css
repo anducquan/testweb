@@ -73,4 +73,12 @@ h2.section-title { border-left: 5px solid var(--primary-color); padding-left: 10
     .detail-container { flex-direction: column; align-items: center; text-align: center; }
     .detail-poster-img { width: 70%; max-width: 250px; }
     .episodes-list { justify-content: center; }
+
+/* ================= NÚT ĐĂNG NHẬP FIREBASE ================= */
+    #authArea { display: flex; align-items: center; }
+    .auth-btn { background: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;}
+.user-profile { display: flex; align-items: center; gap: 10px; cursor: pointer; background: #333; padding: 5px 10px; border-radius: 20px;}
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+.logout-text { font-size: 13px; font-weight: bold; color: #ccc; }
+.logout-text:hover { color: white; }    
 }

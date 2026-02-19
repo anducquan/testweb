@@ -24,7 +24,6 @@
     </div>
 
     <script>
-        // 1. CHUẨN HÓA API (Đồng bộ với OPhim trên trang chủ)
         const API_DETAIL = 'https://ophim1.com/v1/api/phim/';
         
         const container = document.getElementById('detailContainer');
@@ -44,21 +43,17 @@
                 const data = await response.json();
                 loader.style.display = 'none';
 
-                // 2. BẮT LỖI DỮ LIỆU RỖNG BẢO MẬT
                 if (data.status !== 'success' && data.status !== true) {
                     return container.innerHTML = '<h2>Phim không tồn tại hoặc lỗi máy chủ nguồn.</h2>';
                 }
 
-                // Tương thích linh hoạt cấu trúc data
                 const movie = (data.data && data.data.item) ? data.data.item : data.movie;
-                
                 if (!movie) {
                     return container.innerHTML = '<h2>Lỗi cấu trúc dữ liệu phim.</h2>';
                 }
 
                 const episodes = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : (data.episodes || movie.episodes || []);
 
-                // 3. XỬ LÝ ẢNH
                 let imgDomain = (data.data && data.data.APP_DOMAIN_CDN_IMAGE) ? data.data.APP_DOMAIN_CDN_IMAGE : 'https://img.ophim.live';
                 let posterUrl = movie.thumb_url || movie.poster_url;
                 if (posterUrl && !posterUrl.startsWith('http')) {
@@ -71,7 +66,6 @@
                 const btnText = isSaved ? '❌ Bỏ Lưu' : '❤️ Lưu Phim';
                 const btnClass = isSaved ? 'save-btn saved' : 'save-btn';
 
-                // 4. HIỂN THỊ GIAO DIỆN
                 container.innerHTML = `
                     <div class="detail-container">
                         <div class="detail-poster">
@@ -89,7 +83,7 @@
                     </div>
                 `;
 
-                // XỬ LÝ NÚT LƯU PHIM
+                // XỬ LÝ NÚT LƯU PHIM VÀO TỦ
                 document.getElementById('saveMovieBtn').addEventListener('click', function() {
                     if (savedMovies[slug]) {
                         delete savedMovies[slug];
@@ -103,7 +97,7 @@
                     localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
                 });
 
-                // XỬ LÝ DANH SÁCH TẬP
+                // XỬ LÝ DANH SÁCH TẬP VÀ LƯU LỊCH SỬ
                 const epList = document.getElementById('epList');
                 if (episodes.length > 0) {
                     const serverData = episodes[0].server_data;
@@ -113,6 +107,22 @@
                         btn.classList.add('ep-btn');
                         btn.textContent = ep.name.replace('Tập ', '');
                         btn.href = `watch.html?url=${encodeURIComponent(linkM3u8)}`;
+                        
+                        // Lắng nghe sự kiện click để lưu lịch sử xem
+                        btn.addEventListener('click', function() {
+                            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                            if (history[slug]) delete history[slug]; 
+                            
+                            history[slug] = {
+                                name: movie.name,
+                                thumb: posterUrl,
+                                year: movie.year,
+                                epName: ep.name, 
+                                time: Date.now() 
+                            };
+                            localStorage.setItem('watchHistory', JSON.stringify(history));
+                        });
+
                         epList.appendChild(btn);
                     });
                 } else {

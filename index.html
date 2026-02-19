@@ -50,6 +50,11 @@
 
     <div class="container">
         <div id="homeSections">
+            <div id="historySection" style="display: none;">
+                <h2 class="section-title">Phim Đang Xem</h2>
+                <div class="movie-row" id="row-history"></div>
+            </div>
+
             <h2 class="section-title">Phim Mới Cập Nhật</h2>
             <div class="movie-row" id="row-new"><p>Đang tải...</p></div>
 
@@ -76,7 +81,6 @@
         const searchGrid = document.getElementById('searchGrid');
         const searchInput = document.getElementById('searchInput');
 
-        // Hàm gọi API
         async function fetchMovies(url) {
             try {
                 const response = await fetch(url);
@@ -91,7 +95,6 @@
             }
         }
 
-        // Tạo thẻ Phim HTML
         function createCardHTML(movie, imgDomain) {
             let posterUrl = movie.thumb_url || movie.poster_url;
             if (posterUrl && !posterUrl.startsWith('http')) {
@@ -116,7 +119,6 @@
             `;
         }
 
-        // Load các hàng ngang ở trang chủ
         async function loadRow(path, elementId) {
             const rowElement = document.getElementById(elementId);
             const result = await fetchMovies(`${API_DOMAIN}/v1/api/${path}`);
@@ -126,7 +128,52 @@
             result.items.forEach(movie => rowElement.innerHTML += createCardHTML(movie, result.imgDomain));
         }
 
+        // ================= XỬ LÝ PHIM ĐANG XEM =================
+        function loadHistory() {
+            const historySection = document.getElementById('historySection');
+            const rowHistory = document.getElementById('row-history');
+            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+            
+            const slugs = Object.keys(history).sort((a, b) => history[b].time - history[a].time);
+            
+            if (slugs.length > 0) {
+                historySection.style.display = 'block';
+                rowHistory.innerHTML = '';
+                
+                slugs.forEach(slug => {
+                    const m = history[slug];
+                    rowHistory.innerHTML += `
+                        <div class="movie-card" style="position: relative;">
+                            <button onclick="removeHistory(event, '${slug}')" style="position: absolute; top: 5px; right: 5px; background: rgba(229, 9, 20, 0.9); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; font-weight: bold; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center;" title="Xóa">✕</button>
+                            <a href="detail.html?slug=${slug}" style="text-decoration: none; color: inherit; display: block;">
+                                <div class="movie-poster-container">
+                                    <div class="imdb-badge" style="background: var(--primary-color); color: white; left: 5px; right: auto; top: 5px; z-index: 2;">Tập ${m.epName.replace('Tập ', 'T')}</div>
+                                    <img src="${m.thumb}" alt="${m.name}" class="movie-poster" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
+                                </div>
+                                <div class="movie-info">
+                                    <div class="movie-title">${m.name}</div>
+                                    <div class="movie-year">${m.year || 'Đang cập nhật'}</div>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                });
+            } else {
+                historySection.style.display = 'none';
+            }
+        }
+
+        window.removeHistory = function(event, slug) {
+            event.preventDefault();
+            event.stopPropagation();
+            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+            delete history[slug];
+            localStorage.setItem('watchHistory', JSON.stringify(history));
+            loadHistory();
+        };
+
         // KHỞI CHẠY TRANG CHỦ
+        loadHistory();
         loadRow('home', 'row-new');
         loadRow('quoc-gia/au-my', 'row-usuk');
         loadRow('quoc-gia/han-quoc', 'row-korea');
@@ -134,7 +181,6 @@
 
         // ================= HÀM XỬ LÝ KHI BẤM VÀO MENU =================
         async function loadCategory(apiPath, titleName) {
-            // Ẩn trang chủ, hiện khu vực lưới
             homeSections.style.display = 'none';
             searchSection.style.display = 'block';
             document.getElementById('searchTitle').textContent = titleName;
@@ -160,7 +206,6 @@
             }
         });
 
-        // Xóa chữ tìm kiếm thì quay về trang chủ
         searchInput.addEventListener('input', () => {
             if (searchInput.value.trim() === '') {
                 homeSections.style.display = 'block';
