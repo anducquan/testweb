@@ -63,7 +63,25 @@
                 autoOrientation: true, // Xoay ngang màn hình
                 lockDeviceOrientation: true, // Khóa màn hình khi full
                 airplay: true,
-                theme: '#e50914',
+
+                // 👉 ÉP HIỂN THỊ NÚT AIRPLAY (GIỐNG ẢNH CỦA BẠN)
+            controls: [
+                {
+                    position: 'right', // Đặt cạnh nút Cài đặt ở góc phải
+                    html: '<svg viewBox="0 0 1024 1024" width="22" height="22" fill="#fff"><path d="M853.333 768h-170.666v-85.333h170.666v-512h-682.666v512h170.666v85.333h-170.666c-46.934 0-85.334-38.4-85.334-85.333v-512c0-46.933 38.4-85.333 85.334-85.333h682.666c46.933 0 85.333 38.4 85.333 85.333v512c0 46.933-38.4 85.333-85.333 85.333zM512 682.667l-170.667 170.666h341.334l-170.667-170.666z"></path></svg>',
+                    tooltip: 'AirPlay & Âm thanh',
+                    click: function () {
+                        const video = art.video;
+                        // Gọi API gốc của Apple để ép mở bảng đổi Loa / Tai nghe / TV
+                        if (video.webkitShowPlaybackTargetPicker) {
+                            video.webkitShowPlaybackTargetPicker();
+                        } else {
+                            art.notice.show('Tính năng này chỉ hoạt động trên iPhone/iPad (Safari)');
+                        }
+                    }
+                }
+            ],
+            
                 customType: {
                     m3u8: function (video, url, art) {
                         if (Hls.isSupported()) {
