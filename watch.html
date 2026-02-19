@@ -2,13 +2,19 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Đang xem phim</title>
     <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; }
-        .artplayer-app { width: 100%; height: 100vh; }
+        /* Đã thay đổi 100vh thành 100dvh để tự động khít với trình duyệt điện thoại */
+        body, html { 
+            margin: 0; padding: 0; 
+            width: 100%; height: 100dvh; 
+            background-color: #000; overflow: hidden; 
+        }
+        .artplayer-app { width: 100%; height: 100%; }
+        
         /* Nút quay lại nằm gọn góc trái, z-index cao để không bị đè */
         .back-btn { position: fixed; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.6); color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-family: sans-serif; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2);}
         .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; }
@@ -35,13 +41,15 @@
                 autoplay: true, 
                 pip: true, 
                 screenshot: true, 
-                setting: true, // Bật nút Setting
-                playbackRate: true, // Thêm tính năng Chỉnh Tốc Độ Phát
-                aspectRatio: true,  // Thêm tính năng Chỉnh Tỷ Lệ Màn Hình
-                flip: true,         // Thêm tính năng Lật Phim
+                setting: true, 
+                playbackRate: true, 
+                aspectRatio: true,  
+                flip: true,         
                 fullscreen: true, 
                 fullscreenWeb: true, 
                 playsInline: true, 
+                autoOrientation: true, // Thêm: Tự động xoay ngang khi xem trên đth
+                lockDeviceOrientation: true, // Thêm: Khóa xoay lung tung khi đang xem Fullscreen
                 theme: '#e50914',
                 customType: {
                     m3u8: function (video, url, art) {
@@ -51,7 +59,6 @@
                             hls.attachMedia(video);
                             art.hls = hls;
                             
-                            // Tự động kiểm tra nếu có nhiều chất lượng thì mới thêm vào setting
                             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                                 if (data.levels.length > 1) {
                                     let quality = data.levels.map((level, index) => ({
