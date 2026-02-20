@@ -13,18 +13,9 @@
         .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; position: relative; z-index: 10;}
         
         /* CSS CHO PANEL DANH SÁCH TẬP */
-        .episodes-panel {
-            position: fixed; top: 0; right: -300px; width: 280px; height: 100%;
-            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px);
-            z-index: 99999; transition: right 0.3s ease; padding: 20px 15px;
-            box-sizing: border-box; overflow-y: auto; color: white;
-            border-left: 1px solid rgba(255,255,255,0.1); font-family: sans-serif;
-            /* Fix lỗi cuộn trên điện thoại */
-            -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; 
-        }
+        .episodes-panel { position: fixed; top: 0; right: -300px; width: 280px; height: 100%; background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px); z-index: 99999; transition: right 0.3s ease; padding: 20px 15px; box-sizing: border-box; overflow-y: auto; color: white; border-left: 1px solid rgba(255,255,255,0.1); font-family: sans-serif; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         .episodes-panel.open { right: 0; }
-        .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
+        .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 5px; }
         .ep-header h3 { margin: 0; font-size: 18px; color: #e50914;}
         .ep-close-btn { background: transparent; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
         .ep-close-btn:hover { background: #e50914; border-color: #e50914;}
@@ -32,10 +23,20 @@
         .ep-item { background: #333; padding: 10px 5px; border-radius: 5px; text-decoration: none; color: white; text-align: center; font-size: 14px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .ep-item:hover { background: #555; }
         .ep-item.active { background: #e50914; font-weight: bold; pointer-events: none; box-shadow: 0 0 10px rgba(229,9,20,0.5);}
+
+        /* ================= TỐI ƯU RESPONSIVE CHO ĐIỆN THOẠI ================= */
+        @media (max-width: 768px) {
+            /* Ẩn thanh âm lượng trên điện thoại để tiết kiệm diện tích (ĐT đã có phím cứng) */
+            .art-control-volume { display: none !important; }
+            /* Thu hẹp khoảng cách các nút bên dưới */
+            .art-video-player .art-bottom .art-control { padding: 0 5px !important; }
+            /* Thu nhỏ chữ */
+            .mobile-hide-text { display: none; } 
+        }
     </style>
 </head>
 <body>
-    <a href="javascript:history.back()" class="back-btn">← Quay lại</a>
+    <a href="#" class="back-btn" id="backBtn">← Quay lại</a>
     
     <div class="artplayer-app" id="player-container"></div>
     <div class="error-msg" id="error-msg"><h2>Không tìm thấy nguồn phát!</h2></div>
@@ -55,6 +56,13 @@
         let videoUrl = decodeURIComponent(urlParams.get('url'));
         let slug = urlParams.get('slug'); 
 
+        // Gắn link cho nút Quay Lại
+        if (slug) {
+            document.getElementById('backBtn').href = 'detail.html?slug=' + slug;
+        } else {
+            document.getElementById('backBtn').href = 'index.html';
+        }
+
         if (!videoUrl || videoUrl === 'null') {
             document.getElementById('error-msg').style.display = 'block';
         } else {
@@ -62,176 +70,231 @@
                 container: '.artplayer-app',
                 url: videoUrl,
                 type: 'm3u8',
-                volume: 1, 
-                autoplay: true, 
-                pip: true, 
-                setting: true, 
-                playbackRate: true, 
-                aspectRatio: true,  
-                flip: true,          
-                fullscreen: true, 
-                fullscreenWeb: true,            
-                playsInline: true, 
-                autoOrientation: true, 
-                lockDeviceOrientation: true, 
-                theme: '#e50914',
-
-                // NÚT ĐỔI ÂM THANH / AIRPLAY
+                volume: 1, autoplay: true, pip: true, setting: true, playbackRate: true, aspectRatio: true, flip: true,         
+                
+                fullscreen: !/iPhone|iPad|iPod/i.test(navigator.userAgent), 
+                fullscreenWeb: true, 
+                
+                playsInline: true, autoOrientation: true, lockDeviceOrientation: true, theme: '#e50914',
                 controls: [
                     {
                         position: 'right',
-                        html: '<svg viewBox="0 0 1024 1024" width="22" height="22" fill="#fff"><path d="M853.333 768h-170.666v-85.333h170.666v-512h-682.666v512h170.666v85.333h-170.666c-46.934 0-85.334-38.4-85.334-85.333v-512c0-46.933 38.4-85.333 85.334-85.333h682.666c46.933 0 85.333 38.4 85.333 85.333v512c0 46.933-38.4 85.333-85.333 85.333zM512 682.667l-170.667 170.666h341.334l-170.667-170.666z"></path></svg>',
+                        html: '<svg viewBox="0 0 1024 1024" width="20" height="20" fill="#fff"><path d="M853.333 768h-170.666v-85.333h170.666v-512h-682.666v512h170.666v85.333h-170.666c-46.934 0-85.334-38.4-85.334-85.333v-512c0-46.933 38.4-85.333 85.334-85.333h682.666c46.933 0 85.333 38.4 85.333 85.333v512c0 46.933-38.4 85.333-85.333 85.333zM512 682.667l-170.667 170.666h341.334l-170.667-170.666z"></path></svg>',
                         tooltip: 'Đầu ra Âm thanh',
                         click: function () {
-                            const video = art.video;
-                            if (video.webkitShowPlaybackTargetPicker) {
-                                video.webkitShowPlaybackTargetPicker();
-                            } else {
-                                art.notice.show = 'Tính năng này chỉ hỗ trợ trên thiết bị iOS (iPhone/iPad)';
-                            }
+                            if (art.video.webkitShowPlaybackTargetPicker) art.video.webkitShowPlaybackTargetPicker();
+                            else art.notice.show = 'Tính năng này chỉ hỗ trợ thiết bị iOS';
                         }
                     }
                 ],
-
                 customType: {
                     m3u8: function (video, url, art) {
                         if (Hls.isSupported()) {
-                            const hls = new Hls({
-                                enableWorker: true,
-                                capLevelToPlayerSize: true,
-                                maxBufferLength: 15,
-                                maxMaxBufferLength: 30,
-                                startLevel: -1
-                            });
-                            
-                            hls.loadSource(url);
-                            hls.attachMedia(video);
-                            art.hls = hls;
-                            
+                            const hls = new Hls({ enableWorker: true, capLevelToPlayerSize: true, maxBufferLength: 15, maxMaxBufferLength: 30, startLevel: -1 });
+                            hls.loadSource(url); hls.attachMedia(video); art.hls = hls;
                             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                                 if (data.levels.length > 1) {
-                                    let quality = data.levels.map((level, index) => ({
-                                        default: index === data.levels.length - 1,
-                                        html: level.height + 'P',
-                                        level: index,
-                                    }));
-                                    art.setting.add({
-                                        html: 'Chất lượng',
-                                        selector: quality,
-                                        onSelect: function (item) {
-                                            hls.currentLevel = item.level;
-                                            return item.html;
-                                        },
-                                    });
+                                    let quality = data.levels.map((l, i) => ({ default: i === data.levels.length - 1, html: l.height + 'P', level: i }));
+                                    art.setting.add({ html: 'Chất lượng', selector: quality, onSelect: function (item) { hls.currentLevel = item.level; return item.html; } });
                                 }
                             });
                             art.on('destroy', () => hls.destroy());
-                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                            video.src = url;
-                        } else { 
-                            art.notice.show = 'Trình duyệt không hỗ trợ HLS'; 
-                        }
+                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) { video.src = url; }
                     },
                 },
             });
 
-            // ================= LƯU THỜI GIAN VÀO TRÌNH DUYỆT =================
+            // ================= FIX TÍNH NĂNG CẢM ỨNG (DOUBLE TAP 5S & VUỐT) =================
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            let targetTime = 0;
+            let isSwiping = false;
+            let lastTouchTime = 0;
+
+            art.on('ready', () => {
+                const app = art.template.$player; 
+
+                app.addEventListener('touchstart', (e) => {
+                    // ĐÃ FIX: Chỉ chặn vuốt nếu chạm vào thanh tiến trình hoặc các nút bấm bên dưới/bên trong panel
+                    if (e.target.closest('.art-bottom') || e.target.closest('.art-controls') || e.target.closest('.art-setting-panel') || e.target.closest('.episodes-panel')) {
+                        return; 
+                    }
+
+                    const now = Date.now();
+                    
+                    // --- TÍNH NĂNG DOUBLE TAP D2 TUA 5S ---
+                    if (now - lastTouchTime < 300) {
+                        const rect = app.getBoundingClientRect();
+                        const touchX = e.touches[0].clientX - rect.left;
+                        
+                        if (touchX > rect.width * 0.6) { 
+                            art.currentTime += 5; 
+                            art.notice.show = '⏩ +5 Giây';
+                            art.play(); // FIX CHỐNG DỪNG: Ép video chạy tiếp
+                            e.preventDefault(); 
+                            lastTouchTime = 0; 
+                            return;
+                        } 
+                        else if (touchX < rect.width * 0.4) { 
+                            art.currentTime -= 5; 
+                            art.notice.show = '⏪ -5 Giây';
+                            art.play(); // FIX CHỐNG DỪNG: Ép video chạy tiếp
+                            e.preventDefault(); 
+                            lastTouchTime = 0; 
+                            return;
+                        }
+                    }
+                    lastTouchTime = now;
+
+                    // --- CHUẨN BỊ CHO TÍNH NĂNG VUỐT ---
+                    if (e.touches.length === 1) { 
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                        touchStartTime = art.currentTime;
+                        isSwiping = false;
+                    }
+                }, { passive: false });
+
+                app.addEventListener('touchmove', (e) => {
+                    if (e.target.closest('.art-bottom') || e.target.closest('.art-controls') || e.touches.length !== 1) return;
+
+                    let deltaX = e.touches[0].clientX - touchStartX;
+                    let deltaY = e.touches[0].clientY - touchStartY;
+
+                    // Vuốt ngang dài hơn vuốt dọc -> Kích hoạt tua
+                    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
+                        isSwiping = true;
+                        targetTime = touchStartTime + (deltaX * 0.5); 
+                        
+                        if (targetTime < 0) targetTime = 0;
+                        if (targetTime > art.duration) targetTime = art.duration;
+                        
+                        let mins = Math.floor(targetTime / 60);
+                        let secs = Math.floor(targetTime % 60).toString().padStart(2, '0');
+                        let sign = deltaX > 0 ? "⏩ Tua tới" : "⏪ Tua lui";
+                        art.notice.show = `${sign}: ${mins}:${secs}`;
+                        
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
+                app.addEventListener('touchend', (e) => {
+                    if (isSwiping) {
+                        art.currentTime = targetTime; 
+                        isSwiping = false;
+                        e.preventDefault();
+                    }
+                });
+            });
+
+            // ================= LƯU THỜI GIAN THEO TỪNG TẬP =================
             if (slug) {
                 let progressData = JSON.parse(localStorage.getItem('videoProgress')) || {};
+                let epKey = slug + '_' + btoa(videoUrl).substring(0, 15); 
                 
-                if (progressData[slug] && progressData[slug] > 0) {
+                if (progressData[epKey] && progressData[epKey] > 0) {
                     art.once('ready', () => {
-                        art.currentTime = progressData[slug];
-                        art.notice.show = `Đã tự động tua đến phút ${Math.floor(progressData[slug] / 60)}`;
+                        art.currentTime = progressData[epKey];
+                        art.notice.show = `Đã tự động tua đến phút ${Math.floor(progressData[epKey] / 60)}`;
                     });
                 }
 
                 art.on('video:timeupdate', () => {
                     let currentTime = Math.floor(art.currentTime);
                     if (currentTime % 5 === 0 && currentTime > 0) {
-                        progressData[slug] = currentTime;
+                        progressData[epKey] = currentTime;
                         localStorage.setItem('videoProgress', JSON.stringify(progressData));
                     }
                 });
 
-                // ================= GỌI API ĐỂ LÀM DANH SÁCH TẬP & CHUYỂN TẬP =================
-                fetch(`https://ophim1.com/v1/api/phim/${slug}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success' || data.status === true) {
-                        const movie = (data.data && data.data.item) ? data.data.item : data.movie;
-                        const episodes = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : [];
+                // ================= TẠO MENU TẬP VÀ NÚT QUA TẬP =================
+                Promise.all([
+                    fetch(`https://ophim1.com/v1/api/phim/${slug}`).catch(() => null),
+                    fetch(`https://phimapi.com/phim/${slug}`).catch(() => null),
+                    fetch(`https://phim.nguonc.com/api/film/${slug}`).catch(() => null)
+                ]).then(async ([resOphim, resKK, resNguonC]) => {
+                    let combinedEpisodes = [];
+                    
+                    if (resOphim) {
+                        let data = await resOphim.json().catch(()=>null);
+                        let eps = data?.data?.item?.episodes || data?.episodes || [];
+                        eps.forEach(sv => { if(sv.server_data?.length > 0) { sv.server_name += " (Ophim)"; combinedEpisodes.push(sv); }});
+                    }
+                    if (resKK) {
+                        let data = await resKK.json().catch(()=>null);
+                        let eps = data?.episodes || data?.movie?.episodes || data?.data?.item?.episodes || [];
+                        eps.forEach(sv => { if(sv.server_data?.length > 0) { sv.server_name += " (KKPhim)"; combinedEpisodes.push(sv); }});
+                    }
+                    if (resNguonC) {
+                        let data = await resNguonC.json().catch(()=>null);
+                        let eps = data?.episodes || data?.movie?.episodes || data?.item?.episodes || data?.data?.item?.episodes || [];
+                        eps.forEach(sv => { if(sv.server_data?.length > 0) { sv.server_name += " (NguonC)"; combinedEpisodes.push(sv); }});
+                    }
+
+                    if (combinedEpisodes.length > 0) {
+                        const epListContainer = document.getElementById('epListContainer');
+                        epListContainer.innerHTML = '';
                         
-                        if (episodes.length > 0) {
-                            const serverData = episodes[0].server_data;
-                            let currentIndex = -1;
-                            
-                            // Tìm vị trí tập đang phát
-                            for (let i = 0; i < serverData.length; i++) {
-                                if (serverData[i].link_m3u8 === videoUrl) {
-                                    currentIndex = i;
-                                    break;
+                        let currentServerIndex = -1;
+                        let currentEpIndex = -1;
+                        
+                        for (let s = 0; s < combinedEpisodes.length; s++) {
+                            const sData = combinedEpisodes[s].server_data;
+                            for (let e = 0; e < sData.length; e++) {
+                                if (sData[e].link_m3u8 === videoUrl) {
+                                    currentServerIndex = s; currentEpIndex = e; break;
                                 }
                             }
+                            if (currentServerIndex !== -1) break;
+                        }
 
-                            // 1. Gắn nút Mở Danh Sách Tập vào trình phát
-                            art.controls.add({
-                                position: 'right',
-                                html: '<span style="font-size: 14px; font-weight: bold; padding: 0 10px; cursor: pointer;">📺 Chọn tập</span>',
-                                tooltip: 'Danh sách tập phim',
-                                click: function () {
-                                    document.getElementById('episodesPanel').classList.add('open');
-                                }
-                            });
+                        // ĐÃ TỐI ƯU TEXT: Ẩn chữ thừa trên điện thoại để tránh bị tràn
+                        art.controls.add({
+                            position: 'right',
+                            html: '<span style="font-size: 14px; font-weight: bold; cursor: pointer;">📺 <span class="mobile-hide-text">Chọn </span>Tập</span>',
+                            tooltip: 'Danh sách tập phim',
+                            click: function () { document.getElementById('episodesPanel').classList.add('open'); }
+                        });
 
-                            // 2. Render danh sách tập ra thanh Panel
-                            const epListContainer = document.getElementById('epListContainer');
-                            epListContainer.innerHTML = '';
-                            serverData.forEach((ep, index) => {
-                                const isActive = index === currentIndex ? 'active' : '';
+                        combinedEpisodes.forEach((server, sIdx) => {
+                            epListContainer.innerHTML += `<div style="grid-column: span 2; font-weight: bold; color: #e50914; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 14px;">▶ ${server.server_name}</div>`;
+                            server.server_data.forEach((ep, eIdx) => {
+                                const isActive = (sIdx === currentServerIndex && eIdx === currentEpIndex) ? 'active' : '';
                                 const epUrl = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}`;
-                                // Format tên tập cho gọn
                                 const epName = ep.name.replace('Tập ', 'T'); 
                                 epListContainer.innerHTML += `<a href="${epUrl}" class="ep-item ${isActive}">${epName}</a>`;
                             });
+                        });
 
-                            // 3. Xử lý Tập Tiếp Theo
-                            if (currentIndex !== -1) {
-                                // Cập nhật Lịch Sử Xem (Tên tập hiện tại) để khi ra Home thấy đúng tập đang xem
-                                let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                                if (history[slug]) {
-                                    history[slug].epName = serverData[currentIndex].name;
-                                    localStorage.setItem('watchHistory', JSON.stringify(history));
-                                }
+                        if (currentServerIndex !== -1 && currentEpIndex !== -1) {
+                            const currentServerData = combinedEpisodes[currentServerIndex].server_data;
+                            
+                            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                            if (history[slug]) {
+                                history[slug].epName = `${currentServerData[currentEpIndex].name} ${combinedEpisodes[currentServerIndex].server_name}`;
+                                localStorage.setItem('watchHistory', JSON.stringify(history));
+                            }
 
-                                // Nếu chưa phải tập cuối
-                                if (currentIndex < serverData.length - 1) {
-                                    const nextEp = serverData[currentIndex + 1];
-                                    const nextEpUrl = `watch.html?url=${encodeURIComponent(nextEp.link_m3u8)}&slug=${slug}`;
-                                    
-                                    // Thêm nút Qua Tập trên trình phát
-                                    art.controls.add({
-                                        position: 'right',
-                                        html: '<span style="font-size: 14px; font-weight: bold; padding: 0 10px; cursor: pointer; color: #e50914;">⏭️ Tập tiếp</span>',
-                                        tooltip: 'Chuyển tập ' + nextEp.name,
-                                        click: function () {
-                                            window.location.href = nextEpUrl;
-                                        }
-                                    });
+                            if (currentEpIndex < currentServerData.length - 1) {
+                                const nextEp = currentServerData[currentEpIndex + 1];
+                                const nextEpUrl = `watch.html?url=${encodeURIComponent(nextEp.link_m3u8)}&slug=${slug}`;
+                                
+                                art.controls.add({
+                                    position: 'right',
+                                    html: '<span style="font-size: 14px; font-weight: bold; cursor: pointer; color: #e50914;">⏭️ <span class="mobile-hide-text">Tập </span>Tiếp</span>',
+                                    tooltip: 'Chuyển tập',
+                                    click: function () { window.location.href = nextEpUrl; }
+                                });
 
-                                    // Tự động nhảy tập khi video chạy hết
-                                    art.on('video:ended', () => {
-                                        art.notice.show = 'Đang tự động chuyển ' + nextEp.name + '...';
-                                        setTimeout(() => {
-                                            window.location.href = nextEpUrl;
-                                        }, 3000); // Chờ 3 giây rồi chuyển
-                                    });
-                                }
+                                art.on('video:ended', () => {
+                                    art.notice.show = 'Đang tự động chuyển...';
+                                    setTimeout(() => { window.location.href = nextEpUrl; }, 3000); 
+                                });
                             }
                         }
                     }
-                })
-                .catch(err => console.error("Lỗi API tập phim:", err));
+                }).catch(err => console.error(err));
             }
         }
     </script>
