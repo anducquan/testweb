@@ -9,6 +9,7 @@ body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 a { text-decoration: none; color: inherit; }
 
 /* ================= HEADER & MENU ================= */
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: #000; position: sticky; top: 0; z-index: 1000; gap: 15px; width: 100%; box-sizing: border-box; }
 header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: #000; position: sticky; top: 0; z-index: 1000; gap: 15px;}
 .header-left { display: flex; align-items: center; gap: 30px; }
 .logo { font-size: 24px; font-weight: bold; color: var(--primary-color); }
