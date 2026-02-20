@@ -11,24 +11,6 @@
         .artplayer-app { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; padding-bottom: env(safe-area-inset-bottom); z-index: 1;}
         .back-btn { position: absolute; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.6); color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-family: sans-serif; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2); }
         .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; position: relative; z-index: 10;}
-        
-        /* CSS CHO PANEL DANH SÁCH TẬP */
-        .episodes-panel {
-            position: fixed; top: 0; right: -300px; width: 280px; height: 100%;
-            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px);
-            z-index: 99999; transition: right 0.3s ease; padding: 20px 15px;
-            box-sizing: border-box; overflow-y: auto; color: white;
-            border-left: 1px solid rgba(255,255,255,0.1); font-family: sans-serif;
-        }
-        .episodes-panel.open { right: 0; }
-        .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
-        .ep-header h3 { margin: 0; font-size: 18px; color: #e50914;}
-        .ep-close-btn { background: transparent; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
-        .ep-close-btn:hover { background: #e50914; border-color: #e50914;}
-        .ep-list-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .ep-item { background: #333; padding: 10px 5px; border-radius: 5px; text-decoration: none; color: white; text-align: center; font-size: 14px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-        .ep-item:hover { background: #555; }
-        .ep-item.active { background: #e50914; font-weight: bold; pointer-events: none; box-shadow: 0 0 10px rgba(229,9,20,0.5);}
     </style>
 </head>
 <body>
@@ -36,16 +18,6 @@
     
     <div class="artplayer-app" id="player-container"></div>
     <div class="error-msg" id="error-msg"><h2>Không tìm thấy nguồn phát!</h2></div>
-
-    <div class="episodes-panel" id="episodesPanel">
-        <div class="ep-header">
-            <h3>Danh sách tập</h3>
-            <button class="ep-close-btn" onclick="document.getElementById('episodesPanel').classList.remove('open')">Đóng ✕</button>
-        </div>
-        <div class="ep-list-container" id="epListContainer">
-            <p style="grid-column: span 2; text-align: center; color: #aaa;">Đang tải...</p>
-        </div>
-    </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -66,10 +38,12 @@
                 playbackRate: true, 
                 aspectRatio: true,  
                 flip: true,         
-                // Tắt Fullscreen gốc trên iOS để Apple không cướp trình phát
-                fullscreen: !/iPhone|iPad|iPod/i.test(navigator.userAgent), 
-                // Bật Fullscreen của Web (phóng to lấp đầy màn hình trình duyệt)
-                fullscreenWeb: true,
+                
+                // ĐÃ FIX: Bật lại Fullscreen gốc và tắt AutoSize
+                fullscreen: true, 
+                fullscreenWeb: true, 
+                // autoSize: true, ---> ĐÃ XÓA DÒNG GÂY LỖI NÀY
+                
                 playsInline: true, 
                 autoOrientation: true, 
                 lockDeviceOrientation: true, 
@@ -84,9 +58,9 @@
                         click: function () {
                             const video = art.video;
                             if (video.webkitShowPlaybackTargetPicker) {
-                                video.webkitShowPlaybackTargetPicker();
+                                video.webkitShowPlaybackTargetPicker(); // Bảng đổi loa/tai nghe iPhone
                             } else {
-                                art.notice.show = 'Tính năng này chỉ hỗ trợ trên thiết bị iOS (iPhone/iPad)';
+                                art.notice.show('Tính năng này chỉ hỗ trợ trên thiết bị iOS (iPhone/iPad)');
                             }
                         }
                     }
@@ -95,6 +69,7 @@
                 customType: {
                     m3u8: function (video, url, art) {
                         if (Hls.isSupported()) {
+                            // CẤU HÌNH TỐI ƯU LOAD NHANH
                             const hls = new Hls({
                                 enableWorker: true,
                                 capLevelToPlayerSize: true,
@@ -107,6 +82,7 @@
                             hls.attachMedia(video);
                             art.hls = hls;
                             
+                            // Load danh sách chọn chất lượng (1080p, 720p...)
                             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                                 if (data.levels.length > 1) {
                                     let quality = data.levels.map((level, index) => ({
@@ -152,85 +128,6 @@
                         localStorage.setItem('videoProgress', JSON.stringify(progressData));
                     }
                 });
-
-                // ================= GỌI API ĐỂ LÀM DANH SÁCH TẬP & CHUYỂN TẬP =================
-                fetch(`https://ophim1.com/v1/api/phim/${slug}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success' || data.status === true) {
-                        const movie = (data.data && data.data.item) ? data.data.item : data.movie;
-                        const episodes = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : [];
-                        
-                        if (episodes.length > 0) {
-                            const serverData = episodes[0].server_data;
-                            let currentIndex = -1;
-                            
-                            // Tìm vị trí tập đang phát
-                            for (let i = 0; i < serverData.length; i++) {
-                                if (serverData[i].link_m3u8 === videoUrl) {
-                                    currentIndex = i;
-                                    break;
-                                }
-                            }
-
-                            // 1. Gắn nút Mở Danh Sách Tập vào trình phát
-                            art.controls.add({
-                                position: 'right',
-                                html: '<span style="font-size: 14px; font-weight: bold; padding: 0 10px; cursor: pointer;">📺 Chọn tập</span>',
-                                tooltip: 'Danh sách tập phim',
-                                click: function () {
-                                    document.getElementById('episodesPanel').classList.add('open');
-                                }
-                            });
-
-                            // 2. Render danh sách tập ra thanh Panel
-                            const epListContainer = document.getElementById('epListContainer');
-                            epListContainer.innerHTML = '';
-                            serverData.forEach((ep, index) => {
-                                const isActive = index === currentIndex ? 'active' : '';
-                                const epUrl = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}`;
-                                // Format tên tập cho gọn
-                                const epName = ep.name.replace('Tập ', 'T'); 
-                                epListContainer.innerHTML += `<a href="${epUrl}" class="ep-item ${isActive}">${epName}</a>`;
-                            });
-
-                            // 3. Xử lý Tập Tiếp Theo
-                            if (currentIndex !== -1) {
-                                // Cập nhật Lịch Sử Xem (Tên tập hiện tại) để khi ra Home thấy đúng tập đang xem
-                                let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                                if (history[slug]) {
-                                    history[slug].epName = serverData[currentIndex].name;
-                                    localStorage.setItem('watchHistory', JSON.stringify(history));
-                                }
-
-                                // Nếu chưa phải tập cuối
-                                if (currentIndex < serverData.length - 1) {
-                                    const nextEp = serverData[currentIndex + 1];
-                                    const nextEpUrl = `watch.html?url=${encodeURIComponent(nextEp.link_m3u8)}&slug=${slug}`;
-                                    
-                                    // Thêm nút Qua Tập trên trình phát
-                                    art.controls.add({
-                                        position: 'right',
-                                        html: '<span style="font-size: 14px; font-weight: bold; padding: 0 10px; cursor: pointer; color: #e50914;">⏭️ Tập tiếp</span>',
-                                        tooltip: 'Chuyển tập ' + nextEp.name,
-                                        click: function () {
-                                            window.location.href = nextEpUrl;
-                                        }
-                                    });
-
-                                    // Tự động nhảy tập khi video chạy hết
-                                    art.on('video:ended', () => {
-                                        art.notice.show = 'Đang tự động chuyển ' + nextEp.name + '...';
-                                        setTimeout(() => {
-                                            window.location.href = nextEpUrl;
-                                        }, 3000); // Chờ 3 giây rồi chuyển
-                                    });
-                                }
-                            }
-                        }
-                    }
-                })
-                .catch(err => console.error("Lỗi API tập phim:", err));
             }
         }
     </script>
