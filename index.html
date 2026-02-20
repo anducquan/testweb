@@ -213,6 +213,39 @@
                 document.getElementById('searchTitle').textContent = 'Danh sách';
             }
         });
+        
+        // ================= XỬ LÝ TÌM KIẾM TỪ LINK DIỄN VIÊN / THỂ LOẠI =================
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const searchQuery = params.get('search');
+            
+            if (searchQuery) {
+                // Điền tên diễn viên vào ô tìm kiếm cho đẹp
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = searchQuery;
+                
+                // Gọi hàm tìm kiếm phim của OPhim
+                if (window.loadCategory) {
+                    window.loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Phim có sự tham gia của: "${searchQuery}"`);
+                }
+            }
+        });
+        
+        // Bắt lệnh từ trang chi tiết và tự động điền vào ô tìm kiếm
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const searchQuery = params.get('search');
+            
+            if (searchQuery) {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = searchQuery;
+                
+                // Gọi hàm tìm kiếm phim của OPhim (nhớ đổi tên hàm search cho đúng với code cũ của bạn, thường là loadCategory)
+                if (typeof loadCategory === 'function') {
+                    loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Phim của: "${searchQuery}"`);
+                }
+            }
+        });
     </script>
 </body>
 </html>
