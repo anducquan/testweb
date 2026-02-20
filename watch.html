@@ -11,9 +11,6 @@
         .artplayer-app { position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: 100%; height: 100%; padding-bottom: env(safe-area-inset-bottom); z-index: 1;}
         .back-btn { position: absolute; top: 15px; left: 15px; z-index: 9999; background: rgba(0,0,0,0.6); color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-family: sans-serif; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2); }
         .error-msg { color: white; text-align: center; padding-top: 100px; font-family: sans-serif; display: none; position: relative; z-index: 10;}
-        
-        /* ẨN NÚT FULLSCREEN GỐC DỄ GÂY LỖI TRÊN IPHONE, CHỈ GIỮ LẠI WEB-FULLSCREEN */
-        .art-control-fullscreen { display: none !important; }
     </style>
 </head>
 <body>
@@ -25,7 +22,7 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         let videoUrl = decodeURIComponent(urlParams.get('url'));
-        let slug = urlParams.get('slug'); // Lấy mã phim để lưu thời gian
+        let slug = urlParams.get('slug'); 
 
         if (!videoUrl || videoUrl === 'null') {
             document.getElementById('error-msg').style.display = 'block';
@@ -41,10 +38,13 @@
                 playbackRate: true, 
                 aspectRatio: true,  
                 flip: true,         
-                fullscreen: false, // Tắt Fullscreen gốc
-                fullscreenWeb: true, // Chỉ dùng Fullscreen Web (Giữ giao diện)
+                
+                // ĐÃ FIX: Bật lại Fullscreen gốc và tắt AutoSize
+                fullscreen: true, 
+                fullscreenWeb: true, 
+                // autoSize: true, ---> ĐÃ XÓA DÒNG GÂY LỖI NÀY
+                
                 playsInline: true, 
-                autoSize: true, 
                 autoOrientation: true, 
                 lockDeviceOrientation: true, 
                 theme: '#e50914',
@@ -69,14 +69,15 @@
                 customType: {
                     m3u8: function (video, url, art) {
                         if (Hls.isSupported()) {
-                            // TỐI ƯU TỐC ĐỘ LOAD PHIM SIÊU TỐC
+                            // CẤU HÌNH TỐI ƯU LOAD NHANH
                             const hls = new Hls({
-                                enableWorker: true, // Bật xử lý đa luồng giúp nhẹ máy, load mượt
-                                capLevelToPlayerSize: true, // Tự động chọn chất lượng vừa với màn hình để phát ngay lập tức
-                                maxBufferLength: 15, // Chỉ đệm trước 15s để phim khởi động nhanh
-                                maxMaxBufferLength: 30, // Tối đa đệm 30s để tránh đầy RAM điện thoại
-                                startLevel: -1 // Cho phép HLS tự động dò tốc độ mạng cực nhanh
+                                enableWorker: true,
+                                capLevelToPlayerSize: true,
+                                maxBufferLength: 15,
+                                maxMaxBufferLength: 30,
+                                startLevel: -1
                             });
+                            
                             hls.loadSource(url);
                             hls.attachMedia(video);
                             art.hls = hls;
@@ -109,11 +110,10 @@
                 },
             });
 
-            // ================= LƯU THỜI GIAN VÀO TRÌNH DUYỆT (LOCAL STORAGE) =================
+            // ================= LƯU THỜI GIAN VÀO TRÌNH DUYỆT =================
             if (slug) {
                 let progressData = JSON.parse(localStorage.getItem('videoProgress')) || {};
                 
-                // 1. Nếu có lịch sử, tự động tua đến số giây đó
                 if (progressData[slug] && progressData[slug] > 0) {
                     art.once('ready', () => {
                         art.currentTime = progressData[slug];
@@ -121,7 +121,6 @@
                     });
                 }
 
-                // 2. Lưu số giây đang xem (lưu 5 giây 1 lần cho mượt)
                 art.on('video:timeupdate', () => {
                     let currentTime = Math.floor(art.currentTime);
                     if (currentTime % 5 === 0 && currentTime > 0) {
