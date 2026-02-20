@@ -19,6 +19,9 @@
             z-index: 99999; transition: right 0.3s ease; padding: 20px 15px;
             box-sizing: border-box; overflow-y: auto; color: white;
             border-left: 1px solid rgba(255,255,255,0.1); font-family: sans-serif;
+            /* Fix lỗi cuộn trên điện thoại */
+            -webkit-overflow-scrolling: touch; 
+            overscroll-behavior: contain; 
         }
         .episodes-panel.open { right: 0; }
         .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
@@ -66,8 +69,11 @@
                 playbackRate: true, 
                 aspectRatio: true,  
                 flip: true,         
-                fullscreen: true, 
+                
+                // FIX FULLSCREEN IOS: Tắt fullscreen hệ thống nếu là iPhone/iPad, dùng Web Fullscreen để giữ lại nút bấm
+                fullscreen: !/iPhone|iPad|iPod/i.test(navigator.userAgent), 
                 fullscreenWeb: true,
+                
                 playsInline: true, 
                 autoOrientation: true, 
                 lockDeviceOrientation: true, 
