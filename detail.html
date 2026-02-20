@@ -7,16 +7,27 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .header-links a { color: white; margin-left: 20px; font-weight: bold; text-decoration: none;}
-        .save-btn { background-color: #e50914; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; font-weight: bold;}
+        .save-btn { background-color: #e50914; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; font-weight: bold; width: 100%; transition: 0.2s;}
         .save-btn.saved { background-color: #333; }
+        .save-btn:hover { background-color: #ff0a16; }
+        
+        /* CSS LÀM ĐẸP THÔNG TIN VÀ NÚT DIỄN VIÊN */
+        .meta-info { margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 14px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1);}
+        .meta-info span { color: #aaa; display: inline-block; width: 85px;}
+        .meta-info strong { color: #fff; font-weight: 500;}
+        
+        .actor-tag {
+            display: inline-block; background: rgba(255,255,255,0.15); color: #fff;
+            padding: 4px 10px; border-radius: 15px; margin: 3px 3px 3px 0;
+            text-decoration: none; font-size: 13px; transition: 0.2s;
+        }
+        .actor-tag:hover { background: #e50914; color: white; transform: scale(1.05);}
     </style>
 </head>
 <body>
     <header>
         <a href="index.html" class="logo">NETFLIX FAKE</a>
-        <div class="header-links">
-            <a href="tu-phim.html">❤️ Tủ Phim</a>
-        </div>
+        <div class="header-links"><a href="tu-phim.html">❤️ Tủ Phim</a></div>
     </header>
 
     <div class="container" id="detailContainer">
@@ -24,7 +35,6 @@
     </div>
 
     <script>
-        // 1. CHUẨN HÓA API (Đồng bộ với OPhim trên trang chủ)
         const API_DETAIL = 'https://ophim1.com/v1/api/phim/';
         
         const container = document.getElementById('detailContainer');
@@ -36,7 +46,6 @@
 
         async function loadDetail() {
             if (!slug) return container.innerHTML = '<h2>Không tìm thấy mã phim!</h2>';
-            
             loader.style.display = 'block';
             
             try {
@@ -44,52 +53,75 @@
                 const data = await response.json();
                 loader.style.display = 'none';
 
-                // 2. BẮT LỖI DỮ LIỆU RỖNG BẢO MẬT
-                if (data.status !== 'success' && data.status !== true) {
-                    return container.innerHTML = '<h2>Phim không tồn tại hoặc lỗi máy chủ nguồn.</h2>';
-                }
+                if (data.status !== 'success' && data.status !== true) return container.innerHTML = '<h2>Phim không tồn tại.</h2>';
 
-                // Tương thích linh hoạt cấu trúc data
                 const movie = (data.data && data.data.item) ? data.data.item : data.movie;
-                
-                if (!movie) {
-                    return container.innerHTML = '<h2>Lỗi cấu trúc dữ liệu phim.</h2>';
-                }
+                if (!movie) return container.innerHTML = '<h2>Lỗi cấu trúc dữ liệu phim.</h2>';
 
                 const episodes = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : (data.episodes || movie.episodes || []);
 
-                // 3. XỬ LÝ ẢNH
                 let imgDomain = (data.data && data.data.APP_DOMAIN_CDN_IMAGE) ? data.data.APP_DOMAIN_CDN_IMAGE : 'https://img.ophim.live';
                 let posterUrl = movie.thumb_url || movie.poster_url;
-                if (posterUrl && !posterUrl.startsWith('http')) {
-                    posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
-                }
+                if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
 
                 const contentText = movie.content ? movie.content.replace(/(<([^>]+)>)/gi, "") : 'Đang cập nhật...';
                 
+                // ================= XỬ LÝ NÚT DIỄN VIÊN BẤM ĐƯỢC =================
+                let actorsHTML = '<span style="color:#aaa;">Đang cập nhật</span>';
+                if (movie.actor && movie.actor.length > 0 && movie.actor[0] !== "") {
+                    // Biến mỗi tên diễn viên thành 1 thẻ <a> chuyển hướng về index.html kèm lệnh tìm kiếm
+                    actorsHTML = movie.actor.map(actor => 
+                        `<a href="index.html?search=${encodeURIComponent(actor)}" class="actor-tag">${actor}</a>`
+                    ).join('');
+                }
+
+                const directors = (movie.director && movie.director.length > 0 && movie.director[0] !== "") ? movie.director.join(', ') : 'Đang cập nhật';
+                
+                let categoriesHTML = 'Đang cập nhật';
+                if (movie.category && movie.category.length > 0) {
+                    categoriesHTML = movie.category.map(cat => 
+                        `<a href="index.html?search=${encodeURIComponent(cat.name)}" class="actor-tag" style="background: rgba(229, 9, 20, 0.2); border: 1px solid #e50914;">${cat.name}</a>`
+                    ).join('');
+                }
+
                 const isSaved = savedMovies[slug] ? true : false;
                 const btnText = isSaved ? '❌ Bỏ Lưu' : '❤️ Lưu Phim';
                 const btnClass = isSaved ? 'save-btn saved' : 'save-btn';
 
-                // 4. HIỂN THỊ GIAO DIỆN
                 container.innerHTML = `
                     <div class="detail-container">
                         <div class="detail-poster">
                             <img src="${posterUrl}" alt="${movie.name}" class="detail-poster-img" onerror="this.src='https://via.placeholder.com/300x450?text=Loi+Anh'">
-                            <br>
                             <button id="saveMovieBtn" class="${btnClass}">${btnText}</button>
                         </div>
                         <div class="detail-info">
-                            <h1>${movie.name}</h1>
-                            <p style="color: #bbb;">${movie.origin_name} (${movie.year || 'Đang cập nhật'})</p>
-                            <div class="movie-content"><h3>Nội dung:</h3><p>${contentText}</p></div>
-                            <h3>Danh sách tập:</h3>
+                            <h1 style="margin-bottom: 5px;">${movie.name}</h1>
+                            <p style="color: #bbb; margin-top: 0;">${movie.origin_name} (${movie.year || 'N/A'})</p>
+                            
+                            <div class="meta-info">
+                                <div style="margin-bottom: 8px;"><span>🎬 Đạo diễn:</span> <strong>${directors}</strong></div>
+                                <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
+                                    <span>🎭 Diễn viên:</span> 
+                                    <div style="flex: 1;">${actorsHTML}</div>
+                                </div>
+                                <div style="display: flex; align-items: flex-start;">
+                                    <span>🏷️ Thể loại:</span> 
+                                    <div style="flex: 1;">${categoriesHTML}</div>
+                                </div>
+                            </div>
+
+                            <div class="movie-content">
+                                <h3 style="margin-bottom: 5px;">Nội dung:</h3>
+                                <p style="margin-top: 0; line-height: 1.5; color: #ddd;">${contentText}</p>
+                            </div>
+                            
+                            <h3 style="margin-bottom: 10px;">Danh sách tập:</h3>
                             <div class="episodes-list" id="epList"></div>
                         </div>
                     </div>
                 `;
 
-                // XỬ LÝ NÚT LƯU PHIM
+                // XỬ LÝ NÚT LƯU
                 document.getElementById('saveMovieBtn').addEventListener('click', function() {
                     if (savedMovies[slug]) {
                         delete savedMovies[slug];
@@ -103,46 +135,31 @@
                     localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
                 });
 
-                // XỬ LÝ DANH SÁCH TẬP VÀ TRUYỀN ID ĐỂ LƯU THỜI GIAN
+                // XỬ LÝ DANH SÁCH TẬP
                 const epList = document.getElementById('epList');
                 if (episodes.length > 0) {
                     const serverData = episodes[0].server_data;
                     serverData.forEach(ep => {
-                        const linkM3u8 = ep.link_m3u8;
                         const btn = document.createElement('a');
                         btn.classList.add('ep-btn');
                         btn.textContent = ep.name.replace('Tập ', '');
+                        btn.href = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}`;
                         
-                        // 1. TRUYỀN ID ĐỂ LƯU SỐ GIÂY (Trang watch.html)
-                        btn.href = `watch.html?url=${encodeURIComponent(linkM3u8)}&slug=${slug}`;
-                        
-                        // 2. PHỤC HỒI LẠI: LƯU PHIM RA HÀNG "PHIM ĐANG XEM" (Trang chủ)
                         btn.addEventListener('click', function() {
                             let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                            if (history[slug]) delete history[slug]; // Xóa vị trí cũ đẩy lên đầu
-                            
-                            history[slug] = {
-                                name: movie.name,
-                                thumb: posterUrl,
-                                year: movie.year,
-                                epName: ep.name, 
-                                time: Date.now() 
-                            };
+                            if (history[slug]) delete history[slug]; 
+                            history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: ep.name, time: Date.now() };
                             localStorage.setItem('watchHistory', JSON.stringify(history));
                         });
-
                         epList.appendChild(btn);
                     });
                 } else {
                     epList.innerHTML = '<p>Phim đang cập nhật tập...</p>';
                 }
-
             } catch (error) {
-                console.error("Chi tiết lỗi:", error);
-                container.innerHTML = '<h2>Mất kết nối mạng hoặc lỗi server OPhim. Vui lòng tải lại trang.</h2>';
+                container.innerHTML = '<h2>Mất kết nối mạng hoặc lỗi server.</h2>';
             }
         }
-        
         loadDetail();
     </script>
 </body>
