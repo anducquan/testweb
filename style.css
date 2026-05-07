@@ -55,14 +55,38 @@ h2.section-title { border-left: 5px solid var(--primary-color); padding-left: 10
 .ep-btn { padding: 10px 20px; background: #333; color: white; border-radius: 5px; transition: 0.3s; display: inline-block;}
 .ep-btn:hover { background: var(--primary-color); }
 
+/* ================= NÚT ĐĂNG NHẬP FIREBASE ================= */
+#authArea { display: flex; align-items: center; }
+.auth-btn { background: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;}
+.user-profile { display: flex; align-items: center; gap: 10px; cursor: pointer; background: #333; padding: 5px 10px; border-radius: 20px;}
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; }
+.logout-text { font-size: 13px; font-weight: bold; color: #ccc; }
+.logout-text:hover { color: white; }
+
 /* ================= TỐI ƯU CHO ĐIỆN THOẠI (MOBILE) ================= */
 @media (max-width: 768px) {
     /* Gom gọn Header lại để tiết kiệm diện tích */
-    header { flex-direction: column; padding: 10px; gap: 15px; }
-    .header-left { width: 100%; flex-direction: column; align-items: center; gap: 10px; }
-    .nav-menu { flex-wrap: wrap; justify-content: center; gap: 15px; font-size: 14px; }
-    .header-right { width: 100%; flex-direction: column; align-items: center; gap: 10px; }
-    .search-box { width: 100%; }
+    header { flex-direction: column; padding: 10px; gap: 10px; align-items: stretch; }
+    .header-left { width: 100%; flex-direction: column; align-items: stretch; gap: 10px; }
+    .logo { text-align: center; }
+    
+    /* Menu trượt ngang trên điện thoại */
+    .nav-menu { 
+        flex-wrap: nowrap; 
+        justify-content: flex-start; 
+        overflow-x: auto; 
+        padding-bottom: 5px; 
+        -webkit-overflow-scrolling: touch; 
+        gap: 15px; 
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    .nav-menu::-webkit-scrollbar { height: 3px; }
+    .nav-menu::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 5px; }
+
+    /* Thanh tìm kiếm và nút đăng nhập/tủ phim */
+    .header-right { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+    .search-box { width: 100%; order: 3; } /* Đẩy ô tìm kiếm xuống dưới */
     .search-box input { width: 100%; }
     
     /* Ép lưới phim HIỂN THỊ 2 CỘT ĐỀU NHAU siêu đẹp trên Mobile */
@@ -72,13 +96,54 @@ h2.section-title { border-left: 5px solid var(--primary-color); padding-left: 10
     /* Căn giữa trang chi tiết trên đth */
     .detail-container { flex-direction: column; align-items: center; text-align: center; }
     .detail-poster-img { width: 70%; max-width: 250px; }
+    .detail-info { width: 100%; min-width: unset; text-align: left; }
     .episodes-list { justify-content: center; }
+    
+    /* Actor list scroll ngang trên mobile */
+    .actor-list { gap: 10px !important; }
+    .actor-card { min-width: 80px !important; }
+    .actor-card img { width: 65px !important; height: 65px !important; }
 
-/* ================= NÚT ĐĂNG NHẬP FIREBASE ================= */
-    #authArea { display: flex; align-items: center; }
-    .auth-btn { background: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;}
-.user-profile { display: flex; align-items: center; gap: 10px; cursor: pointer; background: #333; padding: 5px 10px; border-radius: 20px;}
-.user-avatar { width: 28px; height: 28px; border-radius: 50%; }
-.logout-text { font-size: 13px; font-weight: bold; color: #ccc; }
-.logout-text:hover { color: white; }    
+    /* Episode panel trong trang xem phim */
+    .ep-grid { grid-template-columns: repeat(4, 1fr) !important; }
+    #episodesPanel { width: 100% !important; }
+    .meta-info { overflow: hidden; }
 }
+
+/* ========== ACTOR TAG ========== */
+.actor-tag { 
+    display: inline-block; 
+    background: rgba(255,255,255,0.1); 
+    border: 1px solid #555;
+    padding: 4px 10px; 
+    border-radius: 20px; 
+    margin: 3px; 
+    font-size: 13px;
+    transition: background 0.3s;
+}
+.actor-tag:hover { background: rgba(229,9,20,0.3); border-color: #e50914; }
+
+/* ========== ACTOR LIST SCROLLBAR (ẩn đi, chỉ hiện khi hover) ========== */
+.actor-list {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s;
+}
+.actor-list:hover {
+    scrollbar-color: #444 transparent;
+}
+.actor-list::-webkit-scrollbar {
+    height: 4px;
+}
+.actor-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.actor-list::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 10px;
+    transition: background 0.3s;
+}
+.actor-list:hover::-webkit-scrollbar-thumb {
+    background: #444;
+}
+

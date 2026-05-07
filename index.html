@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Phim Chill</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <header>
         <div class="header-left">
             <a href="index.html" class="logo">NETFLIX FAKE</a>
             <nav class="nav-menu">
                 <a href="index.html">Trang chủ</a>
-                
+
                 <div class="dropdown">
                     <span style="display:inline-block">Thể loại ▾</span>
                     <div class="dropdown-content">
@@ -45,6 +47,7 @@
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Tìm kiếm phim...">
             </div>
+            <div id="authArea"></div>
         </div>
     </header>
 
@@ -56,16 +59,24 @@
             </div>
 
             <h2 class="section-title">Phim Mới Cập Nhật</h2>
-            <div class="movie-row" id="row-new"><p>Đang tải...</p></div>
+            <div class="movie-row" id="row-new">
+                <p>Đang tải...</p>
+            </div>
 
             <h2 class="section-title">Hành Động Mỹ - Âu</h2>
-            <div class="movie-row" id="row-usuk"><p>Đang tải...</p></div>
+            <div class="movie-row" id="row-usuk">
+                <p>Đang tải...</p>
+            </div>
 
             <h2 class="section-title">Phim Hàn Quốc Tuyển Chọn</h2>
-            <div class="movie-row" id="row-korea"><p>Đang tải...</p></div>
+            <div class="movie-row" id="row-korea">
+                <p>Đang tải...</p>
+            </div>
 
             <h2 class="section-title">Phim Hoa Ngữ (Trung Quốc)</h2>
-            <div class="movie-row" id="row-china"><p>Đang tải...</p></div>
+            <div class="movie-row" id="row-china">
+                <p>Đang tải...</p>
+            </div>
         </div>
 
         <div id="searchSection" style="display: none;">
@@ -122,7 +133,7 @@
         async function loadRow(path, elementId) {
             const rowElement = document.getElementById(elementId);
             const result = await fetchMovies(`${API_DOMAIN}/v1/api/${path}`);
-            
+
             rowElement.innerHTML = '';
             if (result.items.length === 0) return rowElement.innerHTML = '<p>Không có phim nào.</p>';
             result.items.forEach(movie => rowElement.innerHTML += createCardHTML(movie, result.imgDomain));
@@ -133,13 +144,13 @@
             const historySection = document.getElementById('historySection');
             const rowHistory = document.getElementById('row-history');
             let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-            
+
             const slugs = Object.keys(history).sort((a, b) => history[b].time - history[a].time);
-            
+
             if (slugs.length > 0) {
                 historySection.style.display = 'block';
                 rowHistory.innerHTML = '';
-                
+
                 slugs.forEach(slug => {
                     const m = history[slug];
                     rowHistory.innerHTML += `
@@ -163,12 +174,13 @@
             }
         }
 
-        window.removeHistory = function(event, slug) {
+        window.removeHistory = function (event, slug) {
             event.preventDefault();
             event.stopPropagation();
             let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
             delete history[slug];
             localStorage.setItem('watchHistory', JSON.stringify(history));
+            if (window.syncToCloud) window.syncToCloud('watchHistory', history);
             loadHistory();
         };
 
@@ -184,12 +196,12 @@
             homeSections.style.display = 'none';
             searchSection.style.display = 'block';
             document.getElementById('searchTitle').textContent = titleName;
-            
+
             searchGrid.innerHTML = '<p>Đang tải dữ liệu...</p>';
             const result = await fetchMovies(`${API_DOMAIN}/v1/api/${apiPath}`);
-            
+
             searchGrid.innerHTML = '';
-            if(result.items.length === 0) {
+            if (result.items.length === 0) {
                 searchGrid.innerHTML = '<p>Không có dữ liệu.</p>';
             } else {
                 result.items.forEach(movie => {
@@ -200,7 +212,7 @@
 
         // ================= XỬ LÝ TÌM KIẾM =================
         searchInput.addEventListener('keypress', async (e) => {
-            if(e.key === 'Enter' && searchInput.value.trim()) {
+            if (e.key === 'Enter' && searchInput.value.trim()) {
                 const keyword = searchInput.value.trim();
                 loadCategory(`tim-kiem?keyword=${encodeURIComponent(keyword)}`, `Kết quả tìm kiếm: "${keyword}"`);
             }
@@ -213,39 +225,38 @@
                 document.getElementById('searchTitle').textContent = 'Danh sách';
             }
         });
-        
+
         // ================= XỬ LÝ TÌM KIẾM TỪ LINK DIỄN VIÊN / THỂ LOẠI =================
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const searchQuery = params.get('search');
-            
+            const category = params.get('category');
+            const title = params.get('title');
+
             if (searchQuery) {
                 // Điền tên diễn viên vào ô tìm kiếm cho đẹp
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) searchInput.value = searchQuery;
-                
+
                 // Gọi hàm tìm kiếm phim của OPhim
                 if (window.loadCategory) {
-                    window.loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Phim có sự tham gia của: "${searchQuery}"`);
+                    window.loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Kết quả: "${searchQuery}"`);
                 }
-            }
-        });
-        
-        // Bắt lệnh từ trang chi tiết và tự động điền vào ô tìm kiếm
-        window.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            const searchQuery = params.get('search');
-            
-            if (searchQuery) {
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput) searchInput.value = searchQuery;
-                
-                // Gọi hàm tìm kiếm phim của OPhim (nhớ đổi tên hàm search cho đúng với code cũ của bạn, thường là loadCategory)
-                if (typeof loadCategory === 'function') {
-                    loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Phim của: "${searchQuery}"`);
+            } else if (category && title) {
+                if (window.loadCategory) {
+                    window.loadCategory(category, title);
                 }
+            } else {
+                loadHomeData();
             }
+
+            loadHistory();
         });
     </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
 </body>
+
 </html>

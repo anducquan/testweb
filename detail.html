@@ -26,8 +26,45 @@
 </head>
 <body>
     <header>
-        <a href="index.html" class="logo">NETFLIX FAKE</a>
-        <div class="header-links"><a href="tu-phim.html">❤️ Tủ Phim</a></div>
+        <div class="header-left">
+            <a href="index.html" class="logo">NETFLIX FAKE</a>
+            <nav class="nav-menu">
+                <a href="index.html">Trang chủ</a>
+
+                <div class="dropdown">
+                    <span style="display:inline-block">Thể loại ▾</span>
+                    <div class="dropdown-content">
+                        <a href="index.html?category=the-loai/hanh-dong&title=Phim%20H%C3%A0nh%20%C4%90%E1%BB%99ng">Hành Động</a>
+                        <a href="index.html?category=the-loai/tinh-cam&title=Phim%20T%C3%ACnh%20C%E1%BA%A3m">Tình Cảm</a>
+                        <a href="index.html?category=the-loai/hai-huoc&title=Phim%20H%C3%A0i%20H%C6%B0%E1%BB%9Bc">Hài Hước</a>
+                        <a href="index.html?category=the-loai/kinh-di&title=Phim%20Kinh%20D%E1%BB%8B">Kinh Dị</a>
+                        <a href="index.html?category=the-loai/hoat-hinh&title=Phim%20Ho%E1%BA%A1t%20H%C3%ACnh">Hoạt Hình</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <span style="display:inline-block">Quốc gia ▾</span>
+                    <div class="dropdown-content">
+                        <a href="index.html?category=quoc-gia/han-quoc&title=Phim%20H%C3%A0n%20Qu%E1%BB%91c">Hàn Quốc</a>
+                        <a href="index.html?category=quoc-gia/trung-quoc&title=Phim%20Trung%20Qu%E1%BB%91c">Trung Quốc</a>
+                        <a href="index.html?category=quoc-gia/au-my&title=Phim%20%C3%82u%20M%E1%BB%B9">Âu Mỹ</a>
+                        <a href="index.html?category=quoc-gia/nhat-ban&title=Phim%20Nh%E1%BA%ADt%20B%E1%BA%A3n">Nhật Bản</a>
+                        <a href="index.html?category=quoc-gia/thai-lan&title=Phim%20Th%C3%A1i%20Lan">Thái Lan</a>
+                    </div>
+                </div>
+
+                <a href="index.html?category=danh-sach/phim-bo&title=Phim%20B%E1%BB%99">Phim Bộ</a>
+                <a href="index.html?category=danh-sach/phim-chieu-rap&title=Phim%20Chi%E1%BA%BFu%20R%E1%BA%A1p">Phim Chiếu Rạp</a>
+            </nav>
+        </div>
+
+        <div class="header-right">
+            <a href="tu-phim.html" class="tu-phim-btn">❤️ Tủ Phim</a>
+            <div class="search-box">
+                <input type="text" id="searchInputDetail" placeholder="Tìm kiếm phim..." onkeypress="if(event.key === 'Enter') { window.location.href = 'index.html?search=' + encodeURIComponent(this.value.trim()); }">
+            </div>
+            <div id="authArea"></div>
+        </div>
     </header>
 
     <div class="container" id="detailContainer">
@@ -49,27 +86,117 @@
             loader.style.display = 'block';
             
             try {
-                const response = await fetch(API_DETAIL + slug);
-                const data = await response.json();
+                // GỌI SONG SONG CÁC API (Phim OPhim, Phim KKPhim, Hình Diễn Viên)
+                const pOphim = fetch(`https://ophim1.com/v1/api/phim/${slug}`).then(r => r.json());
+                const pKkphim = fetch(`https://phimapi.com/phim/${slug}`).then(r => r.json());
+                const pPeoples = fetch(`https://ophim1.com/v1/api/phim/${slug}/peoples`).then(r => r.json()).catch(() => null);
+
+                let results = await Promise.allSettled([pOphim, pKkphim, pPeoples]);
+                
+                // Trích xuất năm của phim trên OPhim để làm chuẩn
+                let ophimYear = null;
+                if (results[0].status === 'fulfilled' && results[0].value.status === 'success') {
+                    ophimYear = results[0].value.data?.item?.year;
+                }
+
+                // Nếu KKPhim thành công NGUYÊN BẢN nhưng sai lệch năm quá 1, ép thất bại để không bị trộn nhầm phim trùng tên
+                if (ophimYear && results[1].status === 'fulfilled' && (results[1].value.status === 'success' || results[1].value.status === true)) {
+                    let kkYear = results[1].value.movie?.year || results[1].value.data?.item?.year;
+                    if (kkYear && Math.abs(Number(ophimYear) - Number(kkYear)) > 1) {
+                        results[1].value.status = false; // Cố tình cho thất bại để fallback tìm lại
+                    }
+                }
+                
+                // Fallback: Nếu OPhim có nhưng KKPhim báo lỗi (do lệch slug năm hoặc bị ép lỗi ở trên), thử tìm bằng slug phụ
+                if (results[1].status === 'fulfilled' && results[1].value.status === false) {
+                    let altSlug = slug.match(/-\d{4}$/) ? slug.replace(/-\d{4}$/, '') : null;
+                    if (!altSlug && ophimYear) {
+                        altSlug = `${slug}-${ophimYear}`;
+                    }
+                    if (altSlug) {
+                        const altRes = await fetch(`https://phimapi.com/phim/${altSlug}`).then(r => r.json()).catch(() => null);
+                        if (altRes && (altRes.status === 'success' || altRes.status === true)) {
+                            // Kiểm tra an toàn: Đảm bảo cùng là 1 bộ phim bằng cách check Năm phát hành (sai số 1 năm)
+                            let y2 = altRes.movie?.year || altRes.data?.item?.year;
+                            if (!y2 || Math.abs(Number(ophimYear) - Number(y2)) <= 1) {
+                                results[1].value = altRes;
+                            }
+                        }
+                    }
+                }
+                
                 loader.style.display = 'none';
 
-                if (data.status !== 'success' && data.status !== true) return container.innerHTML = '<h2>Phim không tồn tại.</h2>';
+                let movie = null;
+                let episodes = [];
+                let imgDomain = 'https://img.ophim.live'; // Mặc định
 
-                const movie = (data.data && data.data.item) ? data.data.item : data.movie;
-                if (!movie) return container.innerHTML = '<h2>Lỗi cấu trúc dữ liệu phim.</h2>';
+                // Xử lý dữ liệu OPhim (Server 1)
+                if (results[0].status === 'fulfilled' && (results[0].value.status === 'success' || results[0].value.status === true)) {
+                    const data = results[0].value;
+                    if (!movie) {
+                        movie = (data.data && data.data.item) ? data.data.item : data.movie;
+                        if (data.data && data.data.APP_DOMAIN_CDN_IMAGE) imgDomain = data.data.APP_DOMAIN_CDN_IMAGE;
+                    }
+                    let eps = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : [];
+                    eps.forEach(s => {
+                        s.server_name = `Server 1 (OPhim) - ${s.server_name}`;
+                        episodes.push(s);
+                    });
+                }
 
-                const episodes = (data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : (data.episodes || movie.episodes || []);
+                // Xử lý dữ liệu KKPhim (Server 2)
+                if (results[1].status === 'fulfilled' && (results[1].value.status === 'success' || results[1].value.status === true)) {
+                    const data = results[1].value;
+                    if (!movie) {
+                        movie = data.movie || ((data.data && data.data.item) ? data.data.item : null);
+                        if (data.data && data.data.APP_DOMAIN_CDN_IMAGE) imgDomain = data.data.APP_DOMAIN_CDN_IMAGE;
+                        else if (data.APP_DOMAIN_CDN_IMAGE) imgDomain = data.APP_DOMAIN_CDN_IMAGE;
+                    }
+                    let eps = data.episodes || ((data.data && data.data.item && data.data.item.episodes) ? data.data.item.episodes : []);
+                    eps.forEach(s => {
+                        s.server_name = `Server 2 (KKPhim) - ${s.server_name}`;
+                        episodes.push(s);
+                    });
+                }
 
-                let imgDomain = (data.data && data.data.APP_DOMAIN_CDN_IMAGE) ? data.data.APP_DOMAIN_CDN_IMAGE : 'https://img.ophim.live';
+                if (!movie) return container.innerHTML = '<h2>Phim không tồn tại trên cả 2 hệ thống.</h2>';
+
                 let posterUrl = movie.thumb_url || movie.poster_url;
-                if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+                if (posterUrl && !posterUrl.startsWith('http')) {
+                    // Cấu trúc ảnh tuỳ server, thường KKPhim là https://phimimg.com/ + thumb_url
+                    if (imgDomain.includes('phimimg')) {
+                        posterUrl = `${imgDomain}/${posterUrl}`;
+                    } else {
+                        posterUrl = `${imgDomain}/uploads/movies/${posterUrl}`;
+                    }
+                }
 
                 const contentText = movie.content ? movie.content.replace(/(<([^>]+)>)/gi, "") : 'Đang cập nhật...';
                 
-                // ================= XỬ LÝ NÚT DIỄN VIÊN BẤM ĐƯỢC =================
+                // ================= XỬ LÝ NÚT DIỄN VIÊN BẤM ĐƯỢC VÀ HÌNH ẢNH =================
                 let actorsHTML = '<span style="color:#aaa;">Đang cập nhật</span>';
-                if (movie.actor && movie.actor.length > 0 && movie.actor[0] !== "") {
-                    // Biến mỗi tên diễn viên thành 1 thẻ <a> chuyển hướng về index.html kèm lệnh tìm kiếm
+                
+                // Ưu tiên hiển thị hình ảnh diễn viên từ API Peoples (nếu có)
+                if (results[2] && results[2].status === 'fulfilled' && results[2].value && (results[2].value.status === 'success' || results[2].value.status === true || results[2].value.success === true) && results[2].value.data && results[2].value.data.peoples && results[2].value.data.peoples.length > 0) {
+                    const peoplesData = results[2].value.data;
+                    const baseImgUrl = peoplesData.profile_sizes ? (peoplesData.profile_sizes.w185 || peoplesData.profile_sizes.original) : 'https://image.tmdb.org/t/p/w185';
+                    
+                    actorsHTML = '<div class="actor-list" style="display:flex; overflow-x:auto; gap:15px; padding-bottom:10px;">';
+                    peoplesData.peoples.forEach(actor => {
+                        const img = actor.profile_path ? `${baseImgUrl}${actor.profile_path}` : 'https://via.placeholder.com/185x278?text=No+Image';
+                        actorsHTML += `
+                            <a href="index.html?search=${encodeURIComponent(actor.name)}" class="actor-card" style="min-width: 100px; text-align: center; text-decoration: none; display: block;">
+                                <img src="${img}" alt="${actor.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 2px solid #333; transition: border-color 0.3s;" onmouseover="this.style.borderColor='#e50914'" onmouseout="this.style.borderColor='#333'">
+                                <div style="font-size: 12px; font-weight: bold; color: #fff; line-height: 1.2; transition: color 0.3s;" onmouseover="this.style.color='#e50914'" onmouseout="this.style.color='#fff'">${actor.name}</div>
+                                <div style="font-size: 10px; color: #aaa; line-height: 1.2; margin-top: 3px;">${actor.character || ''}</div>
+                            </a>
+                        `;
+                    });
+                    actorsHTML += '</div>';
+                } 
+                // Fallback hiển thị text nếu không có API hình ảnh
+                else if (movie.actor && movie.actor.length > 0 && movie.actor[0] !== "") {
                     actorsHTML = movie.actor.map(actor => 
                         `<a href="index.html?search=${encodeURIComponent(actor)}" class="actor-tag">${actor}</a>`
                     ).join('');
@@ -100,13 +227,13 @@
                             
                             <div class="meta-info">
                                 <div style="margin-bottom: 8px;"><span>🎬 Đạo diễn:</span> <strong>${directors}</strong></div>
-                                <div style="margin-bottom: 8px; display: flex; align-items: flex-start;">
-                                    <span>🎭 Diễn viên:</span> 
-                                    <div style="flex: 1;">${actorsHTML}</div>
+                                <div style="margin-bottom: 12px;">
+                                    <span style="display:block; margin-bottom:8px;">🎭 Diễn viên:</span> 
+                                    <div style="min-width:0; overflow:hidden;">${actorsHTML}</div>
                                 </div>
-                                <div style="display: flex; align-items: flex-start;">
-                                    <span>🏷️ Thể loại:</span> 
-                                    <div style="flex: 1;">${categoriesHTML}</div>
+                                <div>
+                                    <span style="display:block; margin-bottom:8px;">🏷️ Thể loại:</span> 
+                                    <div style="min-width:0;">${categoriesHTML}</div>
                                 </div>
                             </div>
 
@@ -133,25 +260,53 @@
                         this.className = 'save-btn saved';
                     }
                     localStorage.setItem('savedMovies', JSON.stringify(savedMovies));
+                    if (window.syncToCloud) window.syncToCloud('savedMovies', savedMovies);
                 });
 
-                // XỬ LÝ DANH SÁCH TẬP
+                // XỬ LÝ DANH SÁCH TẬP THEO SERVER
                 const epList = document.getElementById('epList');
+                epList.style.display = 'block'; // Sửa lỗi bị ép dẹt do flex của css cũ
+                epList.innerHTML = ''; // Clear loading text
+                
                 if (episodes.length > 0) {
-                    const serverData = episodes[0].server_data;
-                    serverData.forEach(ep => {
-                        const btn = document.createElement('a');
-                        btn.classList.add('ep-btn');
-                        btn.textContent = ep.name.replace('Tập ', '');
-                        btn.href = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}`;
+                    episodes.forEach(server => {
+                        // Tiêu đề Server
+                        const serverTitle = document.createElement('h4');
+                        serverTitle.style.marginTop = '20px';
+                        serverTitle.style.marginBottom = '10px';
+                        serverTitle.style.color = '#e50914';
+                        serverTitle.innerHTML = `▶ Server: ${server.server_name}`;
+                        epList.appendChild(serverTitle);
+
+                        // Container chứa các nút tập của Server này
+                        const serverGrid = document.createElement('div');
+                        serverGrid.style.display = 'flex';
+                        serverGrid.style.flexWrap = 'wrap';
+                        serverGrid.style.gap = '10px';
+                        serverGrid.style.width = '100%';
+                        serverGrid.style.marginBottom = '20px';
                         
-                        btn.addEventListener('click', function() {
-                            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                            if (history[slug]) delete history[slug]; 
-                            history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: ep.name, time: Date.now() };
-                            localStorage.setItem('watchHistory', JSON.stringify(history));
+                        server.server_data.forEach(ep => {
+                            const btn = document.createElement('a');
+                            btn.classList.add('ep-btn');
+                            btn.textContent = ep.name.replace('Tập ', '');
+                            // Bổ sung server_name vào URL để bên watch.html nhận diện
+                            btn.href = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(server.server_name)}`;
+                            
+                            btn.addEventListener('click', function() {
+                                let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                                if (history[slug]) delete history[slug]; 
+                                
+                                // Nếu có nhiều server, lưu thêm tên server vào tên tập để người dùng dễ phân biệt
+                                let eName = (episodes.length > 1 ? `[${server.server_name}] ` : '') + (ep.name.startsWith('Tập') || ep.name === 'Full' ? ep.name : 'Tập ' + ep.name);
+                                history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: eName, time: Date.now() };
+                                
+                                localStorage.setItem('watchHistory', JSON.stringify(history));
+                                if (window.syncToCloud) window.syncToCloud('watchHistory', history);
+                            });
+                            serverGrid.appendChild(btn);
                         });
-                        epList.appendChild(btn);
+                        epList.appendChild(serverGrid);
                     });
                 } else {
                     epList.innerHTML = '<p>Phim đang cập nhật tập...</p>';
@@ -162,5 +317,9 @@
         }
         loadDetail();
     </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
 </body>
 </html>

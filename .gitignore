@@ -1,0 +1,7 @@
+# Loại bỏ file debug/test tạm thời
+*.json
+!package.json
+
+# OS files
+.DS_Store
+Thumbs.db

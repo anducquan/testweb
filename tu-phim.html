@@ -29,8 +29,45 @@
 </head>
 <body>
     <header>
-        <a href="index.html" class="logo">NETFLIX FAKE</a>
-        <div class="header-links"><a href="index.html">🏠 Trang chủ</a></div>
+        <div class="header-left">
+            <a href="index.html" class="logo">NETFLIX FAKE</a>
+            <nav class="nav-menu">
+                <a href="index.html">Trang chủ</a>
+
+                <div class="dropdown">
+                    <span style="display:inline-block">Thể loại ▾</span>
+                    <div class="dropdown-content">
+                        <a href="index.html?category=the-loai/hanh-dong&title=Phim%20H%C3%A0nh%20%C4%90%E1%BB%99ng">Hành Động</a>
+                        <a href="index.html?category=the-loai/tinh-cam&title=Phim%20T%C3%ACnh%20C%E1%BA%A3m">Tình Cảm</a>
+                        <a href="index.html?category=the-loai/hai-huoc&title=Phim%20H%C3%A0i%20H%C6%B0%E1%BB%9Bc">Hài Hước</a>
+                        <a href="index.html?category=the-loai/kinh-di&title=Phim%20Kinh%20D%E1%BB%8B">Kinh Dị</a>
+                        <a href="index.html?category=the-loai/hoat-hinh&title=Phim%20Ho%E1%BA%A1t%20H%C3%ACnh">Hoạt Hình</a>
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <span style="display:inline-block">Quốc gia ▾</span>
+                    <div class="dropdown-content">
+                        <a href="index.html?category=quoc-gia/han-quoc&title=Phim%20H%C3%A0n%20Qu%E1%BB%91c">Hàn Quốc</a>
+                        <a href="index.html?category=quoc-gia/trung-quoc&title=Phim%20Trung%20Qu%E1%BB%91c">Trung Quốc</a>
+                        <a href="index.html?category=quoc-gia/au-my&title=Phim%20%C3%82u%20M%E1%BB%B9">Âu Mỹ</a>
+                        <a href="index.html?category=quoc-gia/nhat-ban&title=Phim%20Nh%E1%BA%ADt%20B%E1%BA%A3n">Nhật Bản</a>
+                        <a href="index.html?category=quoc-gia/thai-lan&title=Phim%20Th%C3%A1i%20Lan">Thái Lan</a>
+                    </div>
+                </div>
+
+                <a href="index.html?category=danh-sach/phim-bo&title=Phim%20B%E1%BB%99">Phim Bộ</a>
+                <a href="index.html?category=danh-sach/phim-chieu-rap&title=Phim%20Chi%E1%BA%BFu%20R%E1%BA%A1p">Phim Chiếu Rạp</a>
+            </nav>
+        </div>
+
+        <div class="header-right">
+            <a href="index.html" class="tu-phim-btn">🏠 Trang Chủ</a>
+            <div class="search-box">
+                <input type="text" id="searchInputTuPhim" placeholder="Tìm kiếm phim..." onkeypress="if(event.key === 'Enter') { window.location.href = 'index.html?search=' + encodeURIComponent(this.value.trim()); }">
+            </div>
+            <div id="authArea"></div>
+        </div>
     </header>
 
     <div class="container">
@@ -82,7 +119,9 @@
         window.deleteMovie = function(slug) {
             if(confirm('Xóa phim này khỏi Tủ Phim?')) {
                 let saved = JSON.parse(localStorage.getItem('savedMovies')) || {};
-                delete saved[slug]; localStorage.setItem('savedMovies', JSON.stringify(saved));
+                delete saved[slug]; 
+                localStorage.setItem('savedMovies', JSON.stringify(saved));
+                if (window.syncToCloud) window.syncToCloud('savedMovies', saved);
                 loadSavedMovies(); 
             }
         };
@@ -198,6 +237,12 @@
                     localStorage.setItem('watchHistory', JSON.stringify(currentHist));
                     localStorage.setItem('videoProgress', JSON.stringify(currentProg));
                     
+                    if (window.syncToCloud) {
+                        if(Object.keys(currentSaved).length > 0) window.syncToCloud('savedMovies', currentSaved);
+                        if(Object.keys(currentHist).length > 0) window.syncToCloud('watchHistory', currentHist);
+                        if(Object.keys(currentProg).length > 0) window.syncToCloud('videoProgress', currentProg);
+                    }
+
                     alert("🎉 Khôi phục Tủ phim & Lịch sử thành công!");
                     window.history.replaceState({}, document.title, window.location.pathname);
                     document.getElementById('syncOverlay').remove();
@@ -213,6 +258,10 @@
         loadSavedMovies();
         autoImportFromLink();
     </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
 </body>
 
 </html>
