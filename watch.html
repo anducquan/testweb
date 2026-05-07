@@ -85,7 +85,7 @@
                 setting: true, 
                 playbackRate: true, 
                 fullscreen: true, 
-                fullscreenWeb: false,            
+                fullscreenWeb: true, // Ép dùng Web Fullscreen để hiển thị được menu Tập Phim đè lên video
                 playsInline: true, 
                 fastForward: true,
                 lockDeviceOrientation: true, 
@@ -194,11 +194,18 @@
                     }
                         
                     if (episodes.length > 0) {
-                        // 1. Gắn nút Mở Danh Sách Tập vào trình phát
+                        // Nhúng panel vào trong Artplayer để nó hiển thị được khi Fullscreen
+                        art.on('ready', () => {
+                            if (document.getElementById('episodesPanel')) {
+                                art.template.$player.appendChild(document.getElementById('episodesPanel'));
+                            }
+                        });
+
+                        // 1. Gắn nút Mở Danh Sách Tập vào trình phát (Dạng Icon)
                         art.controls.add({
                             position: 'right',
-                            html: '<span style="font-size: 14px; font-weight: bold; padding: 0 5px; cursor: pointer;">📺 <span class="custom-btn-text">Chọn tập</span></span>',
-                            tooltip: 'Danh sách tập phim',
+                            html: '<div style="display:flex; align-items:center; padding: 0 10px; cursor: pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>',
+                            tooltip: 'Danh sách tập',
                             click: function () {
                                 document.getElementById('episodesPanel').classList.add('open');
                             }
@@ -289,8 +296,18 @@
                             });
                         });
 
-                        // Xử lý nút Tập Tiếp Theo cho Setting Menu và AutoPlay
+                        // Xử lý nút Tập Tiếp Theo
                         if (hasNextEp) {
+                            // Đưa nút Next ra ngoài thành Icon
+                            art.controls.add({
+                                position: 'right',
+                                html: '<div style="display:flex; align-items:center; padding: 0 10px; cursor: pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></div>',
+                                tooltip: 'Tập tiếp theo: ' + nextEpName,
+                                click: function () {
+                                    window.location.href = nextEpUrl;
+                                }
+                            });
+
                             art.setting.add({
                                 html: 'Chuyển Tập Tiếp Theo',
                                 icon: '⏭️',
@@ -299,7 +316,6 @@
                                     window.location.href = nextEpUrl;
                                 }
                             });
-
                             art.on('video:ended', () => {
                                 art.notice.show = 'Đang tự động chuyển ' + nextEpName + '...';
                                 setTimeout(() => {
