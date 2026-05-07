@@ -146,10 +146,12 @@
                 }
 
                 // Xử lý dữ liệu KKPhim (Server 2)
+                let kkphimMovie = null;
                 if (results[1].status === 'fulfilled' && (results[1].value.status === 'success' || results[1].value.status === true)) {
                     const data = results[1].value;
+                    kkphimMovie = data.movie || null; // Lưu riêng để fallback
                     if (!movie) {
-                        movie = data.movie || ((data.data && data.data.item) ? data.data.item : null);
+                        movie = kkphimMovie || ((data.data && data.data.item) ? data.data.item : null);
                         if (data.data && data.data.APP_DOMAIN_CDN_IMAGE) imgDomain = data.data.APP_DOMAIN_CDN_IMAGE;
                         else if (data.APP_DOMAIN_CDN_IMAGE) imgDomain = data.APP_DOMAIN_CDN_IMAGE;
                     }
@@ -185,10 +187,21 @@
                     actorsHTML = '<div class="actor-list" style="display:flex; overflow-x:auto; gap:15px; padding-bottom:10px;">';
                     peoplesData.peoples.forEach(actor => {
                         const img = actor.profile_path ? `${baseImgUrl}${actor.profile_path}` : 'https://via.placeholder.com/185x278?text=No+Image';
+                        
+                        // Tự động lấy tên tiếng Hàn nếu có từ also_known_as
+                        let displayName = actor.name;
+                        if (actor.also_known_as && actor.also_known_as.length > 0) {
+                            const koreanName = actor.also_known_as.find(n => /[\uAC00-\uD7A3]/.test(n));
+                            if (koreanName) displayName = koreanName;
+                        }
+                        
+                        // Link sang trang actor.html với tmdb_people_id
+                        const actorUrl = `actor.html?tmdb_id=${actor.tmdb_people_id}&name=${encodeURIComponent(displayName)}&img=${encodeURIComponent(img)}`;
+                        
                         actorsHTML += `
-                            <a href="index.html?search=${encodeURIComponent(actor.name)}" class="actor-card" style="min-width: 100px; text-align: center; text-decoration: none; display: block;">
-                                <img src="${img}" alt="${actor.name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 2px solid #333; transition: border-color 0.3s;" onmouseover="this.style.borderColor='#e50914'" onmouseout="this.style.borderColor='#333'">
-                                <div style="font-size: 12px; font-weight: bold; color: #fff; line-height: 1.2; transition: color 0.3s;" onmouseover="this.style.color='#e50914'" onmouseout="this.style.color='#fff'">${actor.name}</div>
+                            <a href="${actorUrl}" class="actor-card" style="min-width: 100px; text-align: center; text-decoration: none; display: block;">
+                                <img src="${img}" alt="${displayName}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 2px solid #333; transition: border-color 0.3s;" onmouseover="this.style.borderColor='#e50914'" onmouseout="this.style.borderColor='#333'">
+                                <div style="font-size: 12px; font-weight: bold; color: #fff; line-height: 1.2; transition: color 0.3s;" onmouseover="this.style.color='#e50914'" onmouseout="this.style.color='#fff'">${displayName}</div>
                                 <div style="font-size: 10px; color: #aaa; line-height: 1.2; margin-top: 3px;">${actor.character || ''}</div>
                             </a>
                         `;
@@ -202,7 +215,13 @@
                     ).join('');
                 }
 
-                const directors = (movie.director && movie.director.length > 0 && movie.director[0] !== "") ? movie.director.join(', ') : 'Đang cập nhật';
+                // Đạo diễn: OPhim trước, fallback sang KKPhim nếu OPhim trống
+                let directorsText = 'Cập nhật...';
+                if (movie.director && movie.director.length > 0 && movie.director[0] !== "") {
+                    directorsText = movie.director.join(', ');
+                } else if (kkphimMovie && kkphimMovie.director && kkphimMovie.director.length > 0 && kkphimMovie.director[0] !== "") {
+                    directorsText = kkphimMovie.director.join(', ');
+                }
                 
                 let categoriesHTML = 'Đang cập nhật';
                 if (movie.category && movie.category.length > 0) {
@@ -226,14 +245,17 @@
                             <p style="color: #bbb; margin-top: 0;">${movie.origin_name} (${movie.year || 'N/A'})</p>
                             
                             <div class="meta-info">
-                                <div style="margin-bottom: 8px;"><span>🎬 Đạo diễn:</span> <strong>${directors}</strong></div>
-                                <div style="margin-bottom: 12px;">
-                                    <span style="display:block; margin-bottom:8px;">🎭 Diễn viên:</span> 
-                                    <div style="min-width:0; overflow:hidden;">${actorsHTML}</div>
+                                <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #2a2a2a;">
+                                    <span style="color:#aaa; font-size:12px; text-transform:uppercase; letter-spacing:1px;">🎬 Đạo diễn</span>
+                                    <div style="margin-top:5px; font-weight:bold;">${directorsText}</div>
                                 </div>
-                                <div>
-                                    <span style="display:block; margin-bottom:8px;">🏷️ Thể loại:</span> 
-                                    <div style="min-width:0;">${categoriesHTML}</div>
+                                <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #2a2a2a;">
+                                    <span style="color:#aaa; font-size:12px; text-transform:uppercase; letter-spacing:1px;">🎭 Diễn viên</span>
+                                    <div style="margin-top:8px; min-width:0; overflow:hidden;">${actorsHTML}</div>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <span style="color:#aaa; font-size:12px; text-transform:uppercase; letter-spacing:1px;">🏷️ Thể loại</span>
+                                    <div style="margin-top:5px;">${categoriesHTML}</div>
                                 </div>
                             </div>
 

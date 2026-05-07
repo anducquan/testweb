@@ -16,6 +16,21 @@ const auth = firebase.auth();
 const provider = new firebase.auth.GoogleAuthProvider();
 const db = firebase.firestore();
 
+// Xử lý kết quả redirect khi quay lại trang (cho mobile hoặc khi popup bị chặn)
+auth.getRedirectResult().then((result) => {
+  if (result && result.user) {
+    console.log("Đăng nhập thành công qua redirect!", result.user.displayName);
+    let localSaved = JSON.parse(localStorage.getItem('savedMovies')) || {};
+    let localHistory = JSON.parse(localStorage.getItem('watchHistory')) || {};
+    let localProgress = JSON.parse(localStorage.getItem('videoProgress')) || {};
+    if (Object.keys(localSaved).length > 0) window.syncToCloud('savedMovies', localSaved);
+    if (Object.keys(localHistory).length > 0) window.syncToCloud('watchHistory', localHistory);
+    if (Object.keys(localProgress).length > 0) window.syncToCloud('videoProgress', localProgress);
+  }
+}).catch((error) => {
+  console.error("Lỗi redirect result:", error);
+});
+
 // Hàm đẩy dữ liệu lên Firestore
 window.syncToCloud = function(key, data) {
   const user = auth.currentUser;
@@ -53,21 +68,25 @@ function renderAuthUI(user) {
 
 // Các hàm này cần gán vào window để HTML có thể gọi qua onclick=""
 window.handleSignIn = function () {
+  // Thử popup trước, nếu bị chặn thì fallback sang redirect (hỗ trợ mobile + GitHub Pages)
   auth.signInWithPopup(provider)
     .then((result) => {
       console.log("Đăng nhập thành công!", result.user.displayName);
-      // Gộp dữ liệu local lên cloud lần đầu
       let localSaved = JSON.parse(localStorage.getItem('savedMovies')) || {};
       let localHistory = JSON.parse(localStorage.getItem('watchHistory')) || {};
       let localProgress = JSON.parse(localStorage.getItem('videoProgress')) || {};
-      
       if (Object.keys(localSaved).length > 0) window.syncToCloud('savedMovies', localSaved);
       if (Object.keys(localHistory).length > 0) window.syncToCloud('watchHistory', localHistory);
       if (Object.keys(localProgress).length > 0) window.syncToCloud('videoProgress', localProgress);
-      
     }).catch((error) => {
-      console.error("Lỗi đăng nhập:", error);
-      alert("Lỗi đăng nhập: " + error.message);
+      // Nếu popup bị chặn -> dùng redirect thay thế
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        console.warn("Popup bị chặn, chuyển sang đăng nhập bằng redirect...");
+        auth.signInWithRedirect(provider);
+      } else {
+        console.error("Lỗi đăng nhập:", error);
+        alert("Lỗi đăng nhập: " + error.message);
+      }
     });
 }
 

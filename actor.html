@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diễn Viên - PhimHub</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .actor-profile {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        .actor-avatar {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #e50914;
+            box-shadow: 0 0 30px rgba(229,9,20,0.4);
+            flex-shrink: 0;
+        }
+        .actor-info h1 {
+            margin: 0 0 5px 0;
+            font-size: 28px;
+        }
+        .actor-info .latin-name {
+            color: #aaa;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .actor-bio {
+            color: #ccc;
+            line-height: 1.6;
+            max-height: 120px;
+            overflow: hidden;
+            transition: max-height 0.4s;
+            font-size: 14px;
+        }
+        .actor-bio.expanded { max-height: 1000px; }
+        .bio-toggle {
+            color: #e50914;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+        .bio-toggle:hover { text-decoration: underline; }
+
+        .filmography-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .film-card {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.25s, box-shadow 0.25s;
+            position: relative;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .film-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+        }
+        .film-card img {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block;
+        }
+        .film-card-info {
+            padding: 8px;
+        }
+        .film-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .film-card-year {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 3px;
+        }
+        .film-card-role {
+            font-size: 10px;
+            color: #888;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .media-badge {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            background: rgba(229,9,20,0.85);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .filter-tab.active {
+            background: #e50914;
+            border-color: #e50914;
+            color: white;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 60px;
+            color: #aaa;
+            font-size: 16px;
+        }
+        .no-result {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .actor-profile { flex-direction: column; align-items: center; text-align: center; }
+            .actor-avatar { width: 150px; height: 150px; }
+            .filmography-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <a href="index.html" class="logo">🎬 PhimHub</a>
+        </div>
+        <div class="header-right">
+            <div id="authArea"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="actorContent"><div class="loading-spinner">⏳ Đang tải thông tin diễn viên...</div></div>
+    </div>
+
+    <script>
+        const TMDB_KEY = '5698002a4036f06fe874295cebfe66a5';
+        const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
+        const TMDB_IMG_POSTER = 'https://image.tmdb.org/t/p/w342';
+
+        const params = new URLSearchParams(window.location.search);
+        const tmdbId = params.get('tmdb_id');
+        const nameFromUrl = params.get('name') || '';
+        const imgFromUrl = params.get('img') || '';
+
+        let allFilms = [];
+        let currentFilter = 'all';
+
+        async function loadActorPage() {
+            if (!tmdbId) {
+                document.getElementById('actorContent').innerHTML = '<div class="no-result"><h2>Không tìm thấy thông tin diễn viên.</h2></div>';
+                return;
+            }
+
+            try {
+                // Gọi song song: thông tin cá nhân + filmography
+                const [personRes, creditsRes] = await Promise.all([
+                    fetch(`https://api.themoviedb.org/3/person/${tmdbId}?api_key=${TMDB_KEY}&language=vi-VN`).then(r => r.json()),
+                    fetch(`https://api.themoviedb.org/3/person/${tmdbId}/combined_credits?api_key=${TMDB_KEY}&language=vi-VN`).then(r => r.json())
+                ]);
+
+                // Lấy tên hiển thị ưu tiên tên Hàn
+                let displayName = personRes.name || nameFromUrl;
+                const latinName = personRes.also_known_as?.find(n => /^[A-Za-z\s]+$/.test(n)) || '';
+
+                const avatarUrl = personRes.profile_path 
+                    ? `${TMDB_IMG}${personRes.profile_path}` 
+                    : (imgFromUrl || 'https://via.placeholder.com/200x200?text=No+Image');
+
+                const bio = personRes.biography || '';
+                const bioHtml = bio 
+                    ? `<div class="actor-bio" id="bioParagraph">${bio}</div>
+                       ${bio.length > 200 ? '<span class="bio-toggle" onclick="toggleBio()">▼ Xem thêm</span>' : ''}`
+                    : '<p style="color:#666; font-size:13px;">Chưa có tiểu sử.</p>';
+
+                // Xử lý filmography
+                allFilms = [...(creditsRes.cast || [])];
+                // Sắp xếp theo độ nổi tiếng
+                allFilms.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+                const tvCount = allFilms.filter(f => f.media_type === 'tv').length;
+                const movieCount = allFilms.filter(f => f.media_type === 'movie').length;
+
+                document.title = `${displayName} - PhimHub`;
+                document.getElementById('actorContent').innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <a href="javascript:history.back()" style="color:#aaa; font-size:14px;">← Quay lại</a>
+                    </div>
+                    <div class="actor-profile">
+                        <img src="${avatarUrl}" class="actor-avatar" alt="${displayName}" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
+                        <div class="actor-info" style="flex:1; min-width:250px;">
+                            <h1>${displayName}</h1>
+                            ${latinName ? `<div class="latin-name">${latinName}</div>` : ''}
+                            ${personRes.birthday ? `<div style="color:#aaa; font-size:13px; margin-bottom:10px;">🎂 ${personRes.birthday}${personRes.place_of_birth ? ' · ' + personRes.place_of_birth : ''}</div>` : ''}
+                            ${bioHtml}
+                        </div>
+                    </div>
+
+                    <h2 class="section-title">Filmography (${allFilms.length} tác phẩm)</h2>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" onclick="filterFilms('all')">Tất cả (${allFilms.length})</button>
+                        <button class="filter-tab" onclick="filterFilms('tv')">Phim bộ (${tvCount})</button>
+                        <button class="filter-tab" onclick="filterFilms('movie')">Phim lẻ (${movieCount})</button>
+                    </div>
+                    <div class="filmography-grid" id="filmGrid"></div>
+                `;
+
+                renderFilms('all');
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('actorContent').innerHTML = '<div class="no-result"><h2>Lỗi tải dữ liệu. Vui lòng thử lại.</h2></div>';
+            }
+        }
+
+        function toggleBio() {
+            const bio = document.getElementById('bioParagraph');
+            const toggle = document.querySelector('.bio-toggle');
+            if (bio.classList.toggle('expanded')) {
+                toggle.textContent = '▲ Thu gọn';
+            } else {
+                toggle.textContent = '▼ Xem thêm';
+            }
+        }
+
+        function filterFilms(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderFilms(type);
+        }
+
+        function renderFilms(type) {
+            const grid = document.getElementById('filmGrid');
+            if (!grid) return;
+
+            const filtered = type === 'all' ? allFilms : allFilms.filter(f => f.media_type === type);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="no-result">Không có dữ liệu.</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(film => {
+                const title = film.name || film.title || 'N/A';
+                const year = (film.first_air_date || film.release_date || '').split('-')[0];
+                const poster = film.poster_path 
+                    ? `${TMDB_IMG_POSTER}${film.poster_path}` 
+                    : 'https://via.placeholder.com/150x225?text=No+Image';
+                const badge = film.media_type === 'tv' ? 'Phim bộ' : 'Phim lẻ';
+                const role = film.character || '';
+                
+                // Tạo search slug để chuyển sang trang tìm kiếm OPhim
+                const searchUrl = `index.html?search=${encodeURIComponent(title)}`;
+
+                return `
+                    <a class="film-card" href="${searchUrl}" title="${title}">
+                        <span class="media-badge">${badge}</span>
+                        <img src="${poster}" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/150x225?text=No+Image'">
+                        <div class="film-card-info">
+                            <div class="film-card-title">${title}</div>
+                            <div class="film-card-year">${year || 'N/A'}</div>
+                            ${role ? `<div class="film-card-role">vai: ${role}</div>` : ''}
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        loadActorPage();
+    </script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
