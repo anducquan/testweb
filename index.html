@@ -239,18 +239,11 @@
                 if (searchInput) searchInput.value = searchQuery;
 
                 // Gọi hàm tìm kiếm phim của OPhim
-                if (window.loadCategory) {
-                    window.loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Kết quả: "${searchQuery}"`);
-                }
+                loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Kết quả: "${searchQuery}"`);
             } else if (category && title) {
-                if (window.loadCategory) {
-                    window.loadCategory(category, title);
-                }
-            } else {
-                loadHomeData();
+                loadCategory(category, title);
             }
-
-            loadHistory();
+            // Nếu không có search hay category thì trang chủ đã tự load ở trên rồi (dòng 188-192)
         });
     </script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
