@@ -89,6 +89,7 @@
                 playsInline: true, 
                 fastForward: true,
                 lockDeviceOrientation: true, 
+                autoOrientation: true, // Tự động xoay ngang khi bật fullscreen trên đt
                 theme: '#e50914',
 
                 customType: {
@@ -242,8 +243,15 @@
                                     }
 
                                     if (progressData[slug] && progressData[slug].time > 0 && progressData[slug].epName === epName) {
-                                        art.currentTime = progressData[slug].time;
-                                        art.notice.show = `Đã tự động tua đến phút ${Math.floor(progressData[slug].time / 60)}`;
+                                        // Đợi video load xong metadata mới tua
+                                        art.once('video:loadedmetadata', () => {
+                                            art.currentTime = progressData[slug].time;
+                                            art.notice.show = `Đã tự động tua đến phút ${Math.floor(progressData[slug].time / 60)}`;
+                                        });
+                                        // Đề phòng trường hợp đã load metadata trước đó
+                                        if (art.video.readyState >= 1) {
+                                            art.currentTime = progressData[slug].time;
+                                        }
                                     }
                                     
                                     art.on('video:timeupdate', () => {

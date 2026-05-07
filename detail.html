@@ -233,12 +233,41 @@
                 const isSaved = savedMovies[slug] ? true : false;
                 const btnText = isSaved ? '❌ Bỏ Lưu' : '❤️ Lưu Phim';
                 const btnClass = isSaved ? 'save-btn saved' : 'save-btn';
+                
+                let resumeBtnHTML = '';
+                let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                if (history[slug]) {
+                    let resumeText = history[slug].epName;
+                    let resumeUrl = history[slug].url || '';
+                    let resumeServer = history[slug].server || '';
+                    
+                    if (!resumeUrl) {
+                        episodes.forEach(server => {
+                            server.server_data.forEach(ep => {
+                                let eName = (episodes.length > 1 ? `[${server.server_name}] ` : '') + (ep.name.startsWith('Tập') || ep.name === 'Full' ? ep.name : 'Tập ' + ep.name);
+                                if (eName === resumeText) {
+                                    resumeUrl = ep.link_m3u8;
+                                    resumeServer = server.server_name;
+                                }
+                            });
+                        });
+                    }
+                    
+                    if (resumeUrl) {
+                        let shortName = resumeText.includes(']') ? resumeText.split('] ')[1] : resumeText;
+                        const playUrl = `watch.html?url=${encodeURIComponent(resumeUrl)}&slug=${slug}&server=${encodeURIComponent(resumeServer)}`;
+                        resumeBtnHTML = `<a href="${playUrl}" class="save-btn" style="background: #e50914; margin-top: 10px; text-decoration: none; color: white; display: block; width: 100%; box-sizing: border-box;">▶ Xem Tiếp ${shortName}</a>`;
+                    }
+                }
 
                 container.innerHTML = `
                     <div class="detail-container">
                         <div class="detail-poster">
                             <img src="${posterUrl}" alt="${movie.name}" class="detail-poster-img" onerror="this.src='https://via.placeholder.com/300x450?text=Loi+Anh'">
-                            <button id="saveMovieBtn" class="${btnClass}">${btnText}</button>
+                            <div style="width: 100%;">
+                                <button id="saveMovieBtn" class="${btnClass}" style="width: 100%;">${btnText}</button>
+                                ${resumeBtnHTML}
+                            </div>
                         </div>
                         <div class="detail-info">
                             <h1 style="margin-bottom: 5px;">${movie.name}</h1>
@@ -321,8 +350,8 @@
                                 
                                 // Nếu có nhiều server, lưu thêm tên server vào tên tập để người dùng dễ phân biệt
                                 let eName = (episodes.length > 1 ? `[${server.server_name}] ` : '') + (ep.name.startsWith('Tập') || ep.name === 'Full' ? ep.name : 'Tập ' + ep.name);
-                                history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: eName, time: Date.now() };
-                                
+                                history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: eName, time: Date.now(), url: ep.link_m3u8, server: server.server_name };
+                               
                                 localStorage.setItem('watchHistory', JSON.stringify(history));
                                 if (window.syncToCloud) window.syncToCloud('watchHistory', history);
                             });
