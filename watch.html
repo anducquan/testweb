@@ -238,10 +238,13 @@
                     } catch(e) {}
                         
                     if (episodes.length > 0) {
-                        // Nhúng panel vào trong Artplayer để nó hiển thị được khi Fullscreen
+                        // Nhúng panel và overlay vào trong Artplayer để nó hiển thị và hoạt động đúng z-index
                         art.on('ready', () => {
                             if (document.getElementById('episodesPanel')) {
-                                art.template.$player.appendChild(document.getElementById('episodesPanel'));
+                                const overlay = document.getElementById('epOverlay');
+                                const panel = document.getElementById('episodesPanel');
+                                if (overlay) art.template.$player.appendChild(overlay);
+                                if (panel) art.template.$player.appendChild(panel);
                             }
                         });
 
@@ -396,10 +399,26 @@
                             tab.className = 'panel-sv-tab' + (idx === activeSvIdx ? ' active' : '');
                             tab.textContent = g.label;
                             tab.addEventListener('click', () => {
-                                panelServerTabs.querySelectorAll('.panel-sv-tab').forEach(t => t.classList.remove('active'));
-                                tab.classList.add('active');
-                                activeSvIdx = idx;
-                                renderPanelEps(idx);
+                                if (idx === activeSvIdx) return;
+                                
+                                // Tìm tập hiện tại đang xem (để giữ nguyên tập khi đổi server)
+                                let currentEpNum = '';
+                                const currentSv = serverGroups[activeSvIdx].server;
+                                currentSv.server_data.forEach(ep => {
+                                    if (ep.link_m3u8 === videoUrl) {
+                                        currentEpNum = ep.name.replace(/^Tập\s*/i, '').trim();
+                                    }
+                                });
+
+                                const newSv = serverGroups[idx].server;
+                                let matchEp = newSv.server_data[0]; // Mặc định tập đầu nếu không tìm thấy
+                                if (currentEpNum) {
+                                    const found = newSv.server_data.find(ep => ep.name.replace(/^Tập\s*/i, '').trim() === currentEpNum);
+                                    if (found) matchEp = found;
+                                }
+                                
+                                const newUrl = `watch.html?url=${encodeURIComponent(matchEp.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(newSv.server_name)}`;
+                                window.location.href = newUrl;
                             });
                             panelServerTabs.appendChild(tab);
                         });
