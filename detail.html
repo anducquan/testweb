@@ -22,6 +22,24 @@
             text-decoration: none; font-size: 13px; transition: 0.2s;
         }
         .actor-tag:hover { background: #e50914; color: white; transform: scale(1.05);}
+
+        /* === TAB SERVER UI === */
+        .server-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .server-tab-btn {
+            padding: 6px 16px; border-radius: 20px; border: 1px solid #444;
+            background: #1a1a1a; color: #aaa; cursor: pointer; font-size: 13px;
+            font-weight: bold; transition: 0.2s; white-space: nowrap;
+        }
+        .server-tab-btn.active { background: #e50914; border-color: #e50914; color: white; }
+        .server-tab-btn:hover:not(.active) { border-color: #e50914; color: white; }
+        .server-ep-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ep-btn {
+            padding: 7px 12px; border-radius: 5px; background: #222; color: #ddd;
+            text-decoration: none; font-size: 13px; font-weight: bold;
+            transition: 0.2s; border: 1px solid #333; min-width: 40px; text-align: center;
+        }
+        .ep-btn:hover { background: #444; color: white; }
+        .ep-btn.current { background: #e50914; color: white; border-color: #e50914; box-shadow: 0 0 8px rgba(229,9,20,0.5); }
     </style>
 </head>
 <body>
@@ -188,11 +206,11 @@
                     peoplesData.peoples.forEach(actor => {
                         const img = actor.profile_path ? `${baseImgUrl}${actor.profile_path}` : 'https://via.placeholder.com/185x278?text=No+Image';
                         
-                        // Tự động lấy tên tiếng Hàn nếu có từ also_known_as
+                        // Ưu tiên dùng tên Latin (tiếng Anh) thay vì tiếng Hàn/Trung/Nhật
                         let displayName = actor.name;
-                        if (actor.also_known_as && actor.also_known_as.length > 0) {
-                            const koreanName = actor.also_known_as.find(n => /[\uAC00-\uD7A3]/.test(n));
-                            if (koreanName) displayName = koreanName;
+                        if (!/^[A-Za-z0-9\s\.\-]+$/.test(displayName) && actor.also_known_as && actor.also_known_as.length > 0) {
+                            const latinName = actor.also_known_as.find(n => /^[A-Za-z0-9\s\.\-]+$/.test(n));
+                            if (latinName) displayName = latinName;
                         }
                         
                         // Link sang trang actor.html với tmdb_people_id
@@ -226,7 +244,7 @@
                 let categoriesHTML = 'Đang cập nhật';
                 if (movie.category && movie.category.length > 0) {
                     categoriesHTML = movie.category.map(cat => 
-                        `<a href="index.html?search=${encodeURIComponent(cat.name)}" class="actor-tag" style="background: rgba(229, 9, 20, 0.2); border: 1px solid #e50914;">${cat.name}</a>`
+                        `<a href="index.html?category=the-loai/${cat.slug}&title=Phim ${encodeURIComponent(cat.name)}" class="actor-tag" style="background: rgba(229, 9, 20, 0.2); border: 1px solid #e50914;">${cat.name}</a>`
                     ).join('');
                 }
 
@@ -320,45 +338,81 @@
                 epList.innerHTML = ''; // Clear loading text
                 
                 if (episodes.length > 0) {
-                    episodes.forEach(server => {
-                        // Tiêu đề Server
-                        const serverTitle = document.createElement('h4');
-                        serverTitle.style.marginTop = '20px';
-                        serverTitle.style.marginBottom = '10px';
-                        serverTitle.style.color = '#e50914';
-                        serverTitle.innerHTML = `▶ Server: ${server.server_name}`;
-                        epList.appendChild(serverTitle);
+                    // === UI TAB SERVER MỚI ===
+                    // Lấy tên phim từ lịch sử (nếu có) để lưu đúng
+                    const currentEpFromHistory = JSON.parse(localStorage.getItem('watchHistory'))?.[slug]?.url || '';
+                    
+                    // Tạo container tab
+                    const tabWrapper = document.createElement('div');
+                    
+                    const tabBar = document.createElement('div');
+                    tabBar.className = 'server-tabs';
 
-                        // Container chứa các nút tập của Server này
-                        const serverGrid = document.createElement('div');
-                        serverGrid.style.display = 'flex';
-                        serverGrid.style.flexWrap = 'wrap';
-                        serverGrid.style.gap = '10px';
-                        serverGrid.style.width = '100%';
-                        serverGrid.style.marginBottom = '20px';
-                        
-                        server.server_data.forEach(ep => {
+                    const epGridWrap = document.createElement('div');
+                    epGridWrap.id = 'serverEpGrid';
+
+                    // Gom các server có tên giống nhau (SV1 viếtsub, SV2 viếtsub,...) chỉ lấy server_name ngắn
+                    // Nhóm các server theo "Server 1", "Server 2" dựa trên prefix
+                    const serverGroups = [];
+                    episodes.forEach(sv => {
+                        const shortLabel = sv.server_name.includes('OPhim') ? 'SV1 - OPhim' :
+                                           sv.server_name.includes('KKPhim') ? 'SV2 - KKPhim' :
+                                           sv.server_name;
+                        // Mỗi server_name là 1 group riêng
+                        serverGroups.push({ label: shortLabel, server: sv });
+                    });
+
+                    let activeGroupIdx = 0;
+                    // Nếu đang xem dở mà sẫn có lịch sử, mở đúng server cũ
+                    const savedServer = JSON.parse(localStorage.getItem('watchHistory'))?.[slug]?.server || '';
+                    if (savedServer) {
+                        serverGroups.forEach((g, i) => {
+                            if (g.server.server_name === savedServer) activeGroupIdx = i;
+                        });
+                    }
+
+                    function renderEpGrid(groupIdx) {
+                        const sv = serverGroups[groupIdx].server;
+                        epGridWrap.innerHTML = '';
+                        const grid = document.createElement('div');
+                        grid.className = 'server-ep-grid';
+                        sv.server_data.forEach(ep => {
                             const btn = document.createElement('a');
                             btn.classList.add('ep-btn');
-                            btn.textContent = ep.name.replace('Tập ', '');
-                            // Bổ sung server_name vào URL để bên watch.html nhận diện
-                            btn.href = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(server.server_name)}`;
-                            
+                            // Đánh dấu tập đang xem dở (so sánh link m3u8)
+                            if (ep.link_m3u8 === currentEpFromHistory) btn.classList.add('current');
+                            btn.textContent = ep.name.replace(/^Tập\s*/i, '');
+                            btn.href = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(sv.server_name)}`;
                             btn.addEventListener('click', function() {
-                                let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                                if (history[slug]) delete history[slug]; 
-                                
-                                // Nếu có nhiều server, lưu thêm tên server vào tên tập để người dùng dễ phân biệt
-                                let eName = (episodes.length > 1 ? `[${server.server_name}] ` : '') + (ep.name.startsWith('Tập') || ep.name === 'Full' ? ep.name : 'Tập ' + ep.name);
-                                history[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: eName, time: Date.now(), url: ep.link_m3u8, server: server.server_name };
-                               
-                                localStorage.setItem('watchHistory', JSON.stringify(history));
-                                if (window.syncToCloud) window.syncToCloud('watchHistory', history);
+                                let hist = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                                const epTitle = (ep.name.startsWith('Tập') || ep.name === 'Full') ? ep.name : 'Tập ' + ep.name;
+                                const eName = (serverGroups.length > 1 ? `[${sv.server_name}] ` : '') + epTitle;
+                                hist[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epName: eName, time: Date.now(), url: ep.link_m3u8, server: sv.server_name };
+                                localStorage.setItem('watchHistory', JSON.stringify(hist));
+                                if (window.syncToCloud) window.syncToCloud('watchHistory', hist);
                             });
-                            serverGrid.appendChild(btn);
+                            grid.appendChild(btn);
                         });
-                        epList.appendChild(serverGrid);
+                        epGridWrap.appendChild(grid);
+                    }
+
+                    serverGroups.forEach((g, idx) => {
+                        const tab = document.createElement('button');
+                        tab.className = 'server-tab-btn' + (idx === activeGroupIdx ? ' active' : '');
+                        tab.textContent = g.label;
+                        tab.addEventListener('click', () => {
+                            document.querySelectorAll('.server-tab-btn').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            activeGroupIdx = idx;
+                            renderEpGrid(idx);
+                        });
+                        tabBar.appendChild(tab);
                     });
+
+                    tabWrapper.appendChild(tabBar);
+                    tabWrapper.appendChild(epGridWrap);
+                    epList.appendChild(tabWrapper);
+                    renderEpGrid(activeGroupIdx);
                 } else {
                     epList.innerHTML = '<p>Phim đang cập nhật tập...</p>';
                 }

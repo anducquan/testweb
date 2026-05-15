@@ -6,6 +6,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Phim Chill</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* === FILTER BAR === */
+        #filterBar {
+            display: none;
+            background: #0f0f0f;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding: 10px 24px;
+            position: sticky; top: 60px; z-index: 800;
+        }
+        #filterBar.visible { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 6px; }
+        .filter-label { color: #888; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; font-family: sans-serif; }
+        .filter-select {
+            background: #1a1a1a; color: #ddd; border: 1px solid #333;
+            padding: 5px 10px; border-radius: 6px; font-size: 13px;
+            cursor: pointer; outline: none; font-family: sans-serif;
+            transition: border-color 0.2s;
+        }
+        .filter-select:hover, .filter-select:focus { border-color: #e50914; }
+        .filter-divider { width: 1px; height: 22px; background: #2a2a2a; margin: 0 4px; }
+        .filter-reset-btn {
+            padding: 5px 12px; border-radius: 6px; border: 1px solid #444;
+            background: transparent; color: #aaa; cursor: pointer; font-size: 12px;
+            font-family: sans-serif; transition: 0.2s; white-space: nowrap;
+        }
+        .filter-reset-btn:hover { border-color: #e50914; color: #e50914; }
+        @media (max-width: 768px) {
+            #filterBar.visible { padding: 8px 12px; gap: 6px; }
+            .filter-select { padding: 4px 6px; font-size: 12px; }
+        }
+
+        /* === PAGINATION === */
+        .pagination-container {
+            display: flex; justify-content: center; align-items: center;
+            gap: 5px; margin: 30px 0 50px 0; flex-wrap: wrap;
+        }
+        .page-btn {
+            background: #222; color: #ddd; border: 1px solid #444;
+            padding: 8px 12px; border-radius: 4px; cursor: pointer;
+            font-size: 14px; transition: all 0.2s; min-width: 36px; text-align: center;
+        }
+        .page-btn:hover { background: #e50914; border-color: #e50914; color: white; }
+        .page-btn.active {
+            background: #e50914; border-color: #e50914; color: white;
+            font-weight: bold; pointer-events: none;
+        }
+        .page-dots { color: #888; padding: 0 5px; }
+    </style>
 </head>
 
 <body>
@@ -18,27 +66,33 @@
                 <div class="dropdown">
                     <span style="display:inline-block">Thể loại ▾</span>
                     <div class="dropdown-content">
-                        <a href="#" onclick="loadCategory('the-loai/hanh-dong', 'Phim Hành Động')">Hành Động</a>
-                        <a href="#" onclick="loadCategory('the-loai/tinh-cam', 'Phim Tình Cảm')">Tình Cảm</a>
-                        <a href="#" onclick="loadCategory('the-loai/hai-huoc', 'Phim Hài Hước')">Hài Hước</a>
-                        <a href="#" onclick="loadCategory('the-loai/kinh-di', 'Phim Kinh Dị')">Kinh Dị</a>
-                        <a href="#" onclick="loadCategory('the-loai/hoat-hinh', 'Phim Hoạt Hình')">Hoạt Hình</a>
+                        <a href="#" onclick="loadCategory('the-loai/hanh-dong','Phim Hành Động');return false">Hành Động</a>
+                        <a href="#" onclick="loadCategory('the-loai/tinh-cam','Phim Tình Cảm');return false">Tình Cảm</a>
+                        <a href="#" onclick="loadCategory('the-loai/hai-huoc','Phim Hài Hước');return false">Hài Hước</a>
+                        <a href="#" onclick="loadCategory('the-loai/kinh-di','Phim Kinh Dị');return false">Kinh Dị</a>
+                        <a href="#" onclick="loadCategory('the-loai/hoat-hinh','Phim Hoạt Hình');return false">Hoạt Hình</a>
+                        <a href="#" onclick="loadCategory('the-loai/vien-tuong','Phim Viễn Tưởng');return false">Viễn Tưởng</a>
+                        <a href="#" onclick="loadCategory('the-loai/phieu-luu','Phim Phiêu Lưu');return false">Phiêu Lưu</a>
+                        <a href="#" onclick="loadCategory('the-loai/bi-an','Phim Bí Ẩn');return false">Bí Ẩn</a>
+                        <a href="#" onclick="loadCategory('the-loai/tai-lieu','Phim Tài Liệu');return false">Tài Liệu</a>
+                        <a href="#" onclick="loadCategory('the-loai/chien-tranh','Phim Chiến Tranh');return false">Chiến Tranh</a>
                     </div>
                 </div>
 
                 <div class="dropdown">
                     <span style="display:inline-block">Quốc gia ▾</span>
                     <div class="dropdown-content">
-                        <a href="#" onclick="loadCategory('quoc-gia/han-quoc', 'Phim Hàn Quốc')">Hàn Quốc</a>
-                        <a href="#" onclick="loadCategory('quoc-gia/trung-quoc', 'Phim Trung Quốc')">Trung Quốc</a>
-                        <a href="#" onclick="loadCategory('quoc-gia/au-my', 'Phim Âu Mỹ')">Âu Mỹ</a>
-                        <a href="#" onclick="loadCategory('quoc-gia/nhat-ban', 'Phim Nhật Bản')">Nhật Bản</a>
-                        <a href="#" onclick="loadCategory('quoc-gia/thai-lan', 'Phim Thái Lan')">Thái Lan</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/han-quoc','Phim Hàn Quốc');return false">Hàn Quốc</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/trung-quoc','Phim Trung Quốc');return false">Trung Quốc</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/au-my','Phim Âu Mỹ');return false">Âu Mỹ</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/nhat-ban','Phim Nhật Bản');return false">Nhật Bản</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/thai-lan','Phim Thái Lan');return false">Thái Lan</a>
+                        <a href="#" onclick="loadCategory('quoc-gia/viet-nam','Phim Việt Nam');return false">Việt Nam</a>
                     </div>
                 </div>
 
-                <a href="#" onclick="loadCategory('danh-sach/phim-bo', 'Phim Bộ Mới')">Phim Bộ</a>
-                <a href="#" onclick="loadCategory('danh-sach/phim-chieu-rap', 'Phim Chiếu Rạp')">Phim Chiếu Rạp</a>
+                <a href="#" onclick="loadCategory('danh-sach/phim-bo','Phim Bộ Mới');return false">Phim Bộ</a>
+                <a href="#" onclick="loadCategory('danh-sach/phim-chieu-rap','Phim Chiếu Rạp');return false">Phim Chiếu Rạp</a>
             </nav>
         </div>
 
@@ -50,6 +104,59 @@
             <div id="authArea"></div>
         </div>
     </header>
+
+    <!-- FILTER BAR: hiện khi bấm vào danh mục -->
+    <div id="filterBar">
+        <div class="filter-group">
+            <span class="filter-label">Thể loại</span>
+            <select class="filter-select" id="filterGenre">
+                <option value="">Tất cả</option>
+                <option value="the-loai/hanh-dong">Hành Động</option>
+                <option value="the-loai/tinh-cam">Tình Cảm</option>
+                <option value="the-loai/hai-huoc">Hài Hước</option>
+                <option value="the-loai/kinh-di">Kinh Dị</option>
+                <option value="the-loai/hoat-hinh">Hoạt Hình</option>
+                <option value="the-loai/vien-tuong">Viễn Tưởng</option>
+                <option value="the-loai/phieu-luu">Phiêu Lưu</option>
+                <option value="the-loai/bi-an">Bí Ẩn</option>
+                <option value="the-loai/tai-lieu">Tài Liệu</option>
+                <option value="the-loai/the-thao">Thể Thao</option>
+                <option value="the-loai/am-nhac">Âm Nhạc</option>
+                <option value="the-loai/lich-su">Lịch Sử</option>
+                <option value="the-loai/chien-tranh">Chiến Tranh</option>
+                <option value="the-loai/tram-cam">Trầm Cảm</option>
+            </select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+            <span class="filter-label">Năm</span>
+            <select class="filter-select" id="filterYear">
+                <option value="">Tất cả</option>
+            </select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+            <span class="filter-label">Sắp xếp</span>
+            <select class="filter-select" id="filterSort">
+                <option value="modified.time">Mới cập nhật</option>
+                <option value="created">Mới đăng</option>
+                <option value="year">Năm sản xuất</option>
+            </select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group">
+            <span class="filter-label">⭐ Rate</span>
+            <select class="filter-select" id="filterRate">
+                <option value="0">Tất cả</option>
+                <option value="9">9+ (Ướ thích)</option>
+                <option value="8">8+ (Rất tốt)</option>
+                <option value="7">7+ (Tốt)</option>
+                <option value="6">6+ (Khá)</option>
+            </select>
+        </div>
+        <div class="filter-divider"></div>
+        <button class="filter-reset-btn" onclick="resetFilters()">&#10006; Xoá lọc</button>
+    </div>
 
     <div class="container">
         <div id="homeSections">
@@ -82,6 +189,7 @@
         <div id="searchSection" style="display: none;">
             <h2 class="section-title" id="searchTitle">Danh sách</h2>
             <div class="movie-grid" id="searchGrid"></div>
+            <div id="pagination" class="pagination-container"></div>
         </div>
     </div>
 
@@ -98,11 +206,12 @@
                 const data = await response.json();
                 return {
                     items: data.data.items || [],
-                    imgDomain: data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live'
+                    imgDomain: data.data.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live',
+                    pagination: data.data.params ? data.data.params.pagination : null
                 };
             } catch (error) {
                 console.error('Lỗi:', error);
-                return { items: [], imgDomain: '' };
+                return { items: [], imgDomain: '', pagination: null };
             }
         }
 
@@ -191,40 +300,289 @@
         loadRow('quoc-gia/han-quoc', 'row-korea');
         loadRow('quoc-gia/trung-quoc', 'row-china');
 
-        // ================= HÀM XỬ LÝ KHI BẤM VÀO MENU =================
-        async function loadCategory(apiPath, titleName) {
-            homeSections.style.display = 'none';
-            searchSection.style.display = 'block';
-            document.getElementById('searchTitle').textContent = titleName;
+        // ================= HÀM FILTER VÀ PHÂN TRANG =================
+        let currentBasePath = ''; // Path gốc (vd: 'the-loai/hanh-dong')
+        let currentTitle = '';
+        let isSearchMode = false; // đang tìm kiếm chướ filter
+        let currentPage = 1;
 
-            searchGrid.innerHTML = '<p>Đang tải dữ liệu...</p>';
-            const result = await fetchMovies(`${API_DOMAIN}/v1/api/${apiPath}`);
+        // Build năm filter từ hiện tại về 2010
+        (function buildYearOptions() {
+            const sel = document.getElementById('filterYear');
+            const curYear = new Date().getFullYear();
+            for (let y = curYear; y >= 2010; y--) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.textContent = y;
+                sel.appendChild(opt);
+            }
+        })();
 
-            searchGrid.innerHTML = '';
-            if (result.items.length === 0) {
-                searchGrid.innerHTML = '<p>Không có dữ liệu.</p>';
-            } else {
-                result.items.forEach(movie => {
-                    searchGrid.innerHTML += createCardHTML(movie, result.imgDomain);
+        function getFilteredPath() {
+            const genre = document.getElementById('filterGenre').value;
+            const year  = document.getElementById('filterYear').value;
+            const sort  = document.getElementById('filterSort').value;
+
+            let path = currentBasePath;
+            if (!path) path = 'danh-sach/phim-bo'; // fallback
+
+            let params = `?sort_field=${sort}&sort_type=desc&page=${currentPage}`;
+            if (year) params += `&year=${year}`;
+
+            if (genre) {
+                if (path.startsWith('the-loai/')) {
+                    // Đang xem tab thể loại → chọn thể loại khác thì đổi path luôn
+                    path = genre;
+                } else {
+                    // Đang xem Quốc gia hoặc Danh sách → thêm filter category vào url query
+                    const categorySlug = genre.replace('the-loai/', '');
+                    params += `&category=${categorySlug}`;
+                }
+            }
+
+            return path + params;
+        }
+
+        function applyFilters(resetPage = true) {
+            if (isSearchMode) return; // đang tìm kiếm → không áp filter
+            if (resetPage) currentPage = 1;
+            const path = getFilteredPath();
+            loadCategoryRaw(path, currentTitle);
+        }
+
+        // Load category không reset filter
+        let _cachedItems = []; // Cache dữ liệu API để filter rate không cần re-fetch
+        let _cachedImgDomain = '';
+        let _isFetchingRate = false;
+
+        function renderWithRateFilter() {
+            const minRate = parseFloat(document.getElementById('filterRate').value) || 0;
+            let items = _cachedItems;
+            if (minRate > 0) {
+                items = items.filter(m => {
+                    const score = m.tmdb?.vote_average || m.imdb?.score || 0;
+                    return parseFloat(score) >= minRate;
                 });
+            }
+            searchGrid.innerHTML = '';
+            if (items.length === 0) {
+                searchGrid.innerHTML = '<p style="color:#aaa;padding:20px;text-align:center;">Không có phim nào ở mức đánh giá này trong 240 phim gần nhất.</p>';
+            } else {
+                items.forEach(movie => searchGrid.innerHTML += createCardHTML(movie, _cachedImgDomain));
             }
         }
 
-        // ================= XỬ LÝ TÌM KIẾM =================
-        searchInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter' && searchInput.value.trim()) {
-                const keyword = searchInput.value.trim();
-                loadCategory(`tim-kiem?keyword=${encodeURIComponent(keyword)}`, `Kết quả tìm kiếm: "${keyword}"`);
+        async function fetchMoreForRate(apiPath) {
+            if (_isFetchingRate) return;
+            _isFetchingRate = true;
+            
+            searchGrid.innerHTML = '<p style="color:#aaa;padding:20px;text-align:center;">Đang gom dữ liệu từ nhiều trang để lọc Rate... Vui lòng đợi.</p>';
+            
+            const paginationEl = document.getElementById('pagination');
+            if (paginationEl) paginationEl.style.display = 'none';
+
+            // Loại bỏ tham số page hiện tại trong path để tự chạy vòng lặp page
+            const basePath = apiPath.replace(/&page=\d+/, '').replace(/\?page=\d+/, '');
+            
+            const promises = [];
+            // Gọi 10 trang đầu tiên (khoảng 240 phim)
+            for (let i = 1; i <= 10; i++) {
+                let p = basePath;
+                if (p.includes('?')) p += `&page=${i}`;
+                else p += `?page=${i}`;
+                promises.push(fetchMovies(`${API_DOMAIN}/v1/api/${p}`));
+            }
+            
+            const results = await Promise.all(promises);
+            let combinedItems = [];
+            results.forEach(res => {
+                if (res.items) combinedItems.push(...res.items);
+            });
+            
+            // Loại bỏ trùng lặp (nếu có)
+            const uniqueMap = new Map();
+            combinedItems.forEach(item => uniqueMap.set(item._id, item));
+            _cachedItems = Array.from(uniqueMap.values());
+            _cachedImgDomain = results[0]?.imgDomain || _cachedImgDomain;
+
+            renderWithRateFilter();
+            _isFetchingRate = false;
+        }
+
+        async function loadCategoryRaw(apiPath, titleName) {
+            homeSections.style.display = 'none';
+            searchSection.style.display = 'block';
+            document.getElementById('searchTitle').textContent = titleName;
+            
+            const minRate = parseFloat(document.getElementById('filterRate').value) || 0;
+            
+            if (minRate > 0) {
+                 await fetchMoreForRate(apiPath);
+                 return;
+            }
+
+            searchGrid.innerHTML = '<p style="color:#aaa;padding:20px;text-align:center;">Đang tải...</p>';
+            
+            // Nếu là tim-kiem mà chưa có param page thì thêm vào
+            if (apiPath.includes('tim-kiem?keyword=') && !apiPath.includes('&page=')) {
+                apiPath += `&page=${currentPage}`;
+            }
+
+            const result = await fetchMovies(`${API_DOMAIN}/v1/api/${apiPath}`);
+            _cachedItems = result.items;
+            _cachedImgDomain = result.imgDomain;
+            renderWithRateFilter(); 
+            renderPagination(result.pagination);
+            
+            const paginationEl = document.getElementById('pagination');
+            if (paginationEl) paginationEl.style.display = 'flex';
+        }
+
+        function renderPagination(pagination) {
+            const container = document.getElementById('pagination');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (!pagination) return;
+            const total = Math.ceil(pagination.totalItems / pagination.totalItemsPerPage);
+            if (total <= 1) return;
+
+            const current = pagination.currentPage;
+            
+            function createBtn(text, page, isActive = false) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn' + (isActive ? ' active' : '');
+                btn.textContent = text;
+                btn.onclick = () => {
+                    currentPage = page;
+                    if (isSearchMode) {
+                        const kw = document.getElementById('searchInput').value.trim();
+                        loadCategoryRaw(`tim-kiem?keyword=${encodeURIComponent(kw)}&page=${currentPage}`, `🔍 Kết quả: "${kw}"`);
+                    } else {
+                        applyFilters(false);
+                    }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+                return btn;
+            }
+
+            if (current > 1) container.appendChild(createBtn('«', current - 1));
+
+            let start = Math.max(1, current - 2);
+            let end = Math.min(total, current + 2);
+
+            if (start > 1) {
+                container.appendChild(createBtn('1', 1));
+                if (start > 2) {
+                    const dots = document.createElement('span');
+                    dots.className = 'page-dots'; dots.textContent = '...';
+                    container.appendChild(dots);
+                }
+            }
+
+            for (let i = start; i <= end; i++) {
+                container.appendChild(createBtn(i, i, i === current));
+            }
+
+            if (end < total) {
+                if (end < total - 1) {
+                    const dots = document.createElement('span');
+                    dots.className = 'page-dots'; dots.textContent = '...';
+                    container.appendChild(dots);
+                }
+                container.appendChild(createBtn(total, total));
+            }
+
+            if (current < total) container.appendChild(createBtn('»', current + 1));
+        }
+
+        async function loadCategory(apiPath, titleName) {
+            isSearchMode = false;
+            currentBasePath = apiPath;
+            currentTitle = titleName;
+            currentPage = 1;
+
+            // Đồng bộ genre filter với path được chọn
+            const genreSel = document.getElementById('filterGenre');
+            const allGenres = [...genreSel.options].map(o => o.value);
+            genreSel.value = allGenres.includes(apiPath) ? apiPath : '';
+
+            // Hiện filter bar
+            document.getElementById('filterBar').classList.add('visible');
+
+            const path = getFilteredPath();
+            await loadCategoryRaw(path, titleName);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterGenre').value = '';
+            document.getElementById('filterYear').value = '';
+            document.getElementById('filterSort').value = 'modified.time';
+            document.getElementById('filterRate').value = '0';
+            if (currentBasePath) applyFilters();
+        }
+
+        // Lắng nghe thay đổi filter
+        ['filterGenre','filterYear','filterSort'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                applyFilters(true); // Re-fetch với param mới, reset page 1
+            });
+        });
+        
+        // Rate filter: kích hoạt gom data hoặc reload bình thường
+        document.getElementById('filterRate').addEventListener('change', () => {
+            if (isSearchMode) {
+                const kw = document.getElementById('searchInput').value.trim();
+                loadCategoryRaw(`tim-kiem?keyword=${encodeURIComponent(kw)}&page=${currentPage}`, `🔍 Kết quả: "${kw}"`);
+            } else {
+                applyFilters(false);
             }
         });
 
+        // ================= XỬ LÝ TÌM KIẾM (LIVE SEARCH) =================
+        let searchDebounce = null;
+
         searchInput.addEventListener('input', () => {
-            if (searchInput.value.trim() === '') {
-                homeSections.style.display = 'block';
-                searchSection.style.display = 'none';
-                document.getElementById('searchTitle').textContent = 'Danh sách';
+            const keyword = searchInput.value.trim();
+            if (!keyword) {
+                isSearchMode = false;
+                if (currentBasePath) {
+                    // Quay lại danh mục đang xem
+                    document.getElementById('filterBar').classList.add('visible');
+                    applyFilters();
+                } else {
+                    homeSections.style.display = 'block';
+                    searchSection.style.display = 'none';
+                    document.getElementById('filterBar').classList.remove('visible');
+                }
+                clearTimeout(searchDebounce);
+                return;
+            }
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                isSearchMode = true;
+                currentPage = 1;
+                document.getElementById('filterBar').classList.remove('visible');
+                homeSections.style.display = 'none';
+                searchSection.style.display = 'block';
+                loadCategoryRaw(`tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${currentPage}`, `🔍 Kết quả: "${keyword}"`);
+            }, 400);
+        });
+
+        // Bấm Enter tìm ngay
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && searchInput.value.trim()) {
+                clearTimeout(searchDebounce);
+                const keyword = searchInput.value.trim();
+                isSearchMode = true;
+                currentPage = 1;
+                document.getElementById('filterBar').classList.remove('visible');
+                homeSections.style.display = 'none';
+                searchSection.style.display = 'block';
+                loadCategoryRaw(`tim-kiem?keyword=${encodeURIComponent(keyword)}&page=${currentPage}`, `🔍 Kết quả: "${keyword}"`);
             }
         });
+
+
 
         // ================= XỬ LÝ TÌM KIẾM TỪ LINK DIỄN VIÊN / THỂ LOẠI =================
         window.addEventListener('DOMContentLoaded', () => {
@@ -238,8 +596,15 @@
                 const searchInput = document.getElementById('searchInput');
                 if (searchInput) searchInput.value = searchQuery;
 
-                // Gọi hàm tìm kiếm phim của OPhim
-                loadCategory(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}`, `Kết quả: "${searchQuery}"`);
+                // Cài đặt trạng thái là đang tìm kiếm, ẩn filter
+                isSearchMode = true;
+                currentPage = 1;
+                document.getElementById('filterBar').classList.remove('visible');
+                homeSections.style.display = 'none';
+                searchSection.style.display = 'block';
+
+                // Gọi hàm tìm kiếm phim của OPhim (dùng loadCategoryRaw thay vì loadCategory để không bị dính filter)
+                loadCategoryRaw(`tim-kiem?keyword=${encodeURIComponent(searchQuery)}&page=${currentPage}`, `Kết quả: "${searchQuery}"`);
             } else if (category && title) {
                 loadCategory(category, title);
             }

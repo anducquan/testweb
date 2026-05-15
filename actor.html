@@ -188,9 +188,12 @@
                     fetch(`https://api.themoviedb.org/3/person/${tmdbId}/combined_credits?api_key=${TMDB_KEY}&language=vi-VN`).then(r => r.json())
                 ]);
 
-                // Lấy tên hiển thị ưu tiên tên Hàn
+                // Lấy tên hiển thị chuẩn (ưu tiên tên Latin)
                 let displayName = personRes.name || nameFromUrl;
-                const latinName = personRes.also_known_as?.find(n => /^[A-Za-z\s]+$/.test(n)) || '';
+                if (!/^[A-Za-z0-9\s\.\-]+$/.test(displayName) && personRes.also_known_as) {
+                    const latinName = personRes.also_known_as.find(n => /^[A-Za-z0-9\s\.\-]+$/.test(n));
+                    if (latinName) displayName = latinName;
+                }
 
                 const avatarUrl = personRes.profile_path 
                     ? `${TMDB_IMG}${personRes.profile_path}` 
@@ -219,7 +222,6 @@
                         <img src="${avatarUrl}" class="actor-avatar" alt="${displayName}" onerror="this.src='https://via.placeholder.com/200x200?text=No+Image'">
                         <div class="actor-info" style="flex:1; min-width:250px;">
                             <h1>${displayName}</h1>
-                            ${latinName ? `<div class="latin-name">${latinName}</div>` : ''}
                             ${personRes.birthday ? `<div style="color:#aaa; font-size:13px; margin-bottom:10px;">🎂 ${personRes.birthday}${personRes.place_of_birth ? ' · ' + personRes.place_of_birth : ''}</div>` : ''}
                             ${bioHtml}
                         </div>
@@ -278,12 +280,10 @@
                     : 'https://via.placeholder.com/150x225?text=No+Image';
                 const badge = film.media_type === 'tv' ? 'Phim bộ' : 'Phim lẻ';
                 const role = film.character || '';
-                
-                // Tạo search slug để chuyển sang trang tìm kiếm OPhim
-                const searchUrl = `index.html?search=${encodeURIComponent(title)}`;
 
                 return `
-                    <a class="film-card" href="${searchUrl}" title="${title}">
+                    <div class="film-card" onclick="openFilm('${encodeURIComponent(title)}', this)" title="${title}">
+                        <div class="loading-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); z-index:10; align-items:center; justify-content:center; color:white; font-size:12px; font-weight:bold;">Đang mở...</div>
                         <span class="media-badge">${badge}</span>
                         <img src="${poster}" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/150x225?text=No+Image'">
                         <div class="film-card-info">
@@ -291,9 +291,28 @@
                             <div class="film-card-year">${year || 'N/A'}</div>
                             ${role ? `<div class="film-card-role">vai: ${role}</div>` : ''}
                         </div>
-                    </a>
+                    </div>
                 `;
             }).join('');
+        }
+
+        async function openFilm(encodedTitle, element) {
+            const overlay = element.querySelector('.loading-overlay');
+            if (overlay) overlay.style.display = 'flex';
+            
+            try {
+                const res = await fetch(`https://ophim1.com/v1/api/tim-kiem?keyword=${encodedTitle}`);
+                const data = await res.json();
+                if (data && data.data && data.data.items && data.data.items.length > 0) {
+                    const movie = data.data.items[0];
+                    window.location.href = `detail.html?slug=${movie.slug}`;
+                } else {
+                    window.location.href = `index.html?search=${encodedTitle}`;
+                }
+            } catch (err) {
+                console.error(err);
+                window.location.href = `index.html?search=${encodedTitle}`;
+            }
         }
 
         loadActorPage();

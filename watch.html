@@ -20,29 +20,38 @@
         .logout-text:hover { color: white; }
         
         /* CSS CHO PANEL DANH SÁCH TẬP */
-        .episodes-panel {
-            position: fixed; top: 0; right: -300px; width: 280px; height: 100%;
-            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(10px);
-            z-index: 99999; transition: right 0.3s ease; padding: 20px 15px;
-            box-sizing: border-box; overflow-y: auto; color: white;
-            border-left: 1px solid rgba(255,255,255,0.1); font-family: sans-serif;
-            /* Fix lỗi cuộn trên điện thoại */
-            -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; 
+        .ep-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 99998;
         }
-        
+        .ep-overlay.open { display: block; }
+        .episodes-panel {
+            position: fixed; top: 0; right: -340px; width: 320px; height: 100%;
+            background: rgba(12, 12, 12, 0.97); backdrop-filter: blur(12px);
+            z-index: 99999; transition: right 0.3s ease; padding: 0;
+            box-sizing: border-box; overflow: hidden; color: white;
+            border-left: 1px solid rgba(255,255,255,0.08); font-family: sans-serif;
+            display: flex; flex-direction: column;
+        }
         @media (max-width: 768px) {
             .custom-btn-text { display: none; }
+            .episodes-panel { width: 100%; right: -100%; }
         }
         .episodes-panel.open { right: 0; }
-        .ep-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
-        .ep-header h3 { margin: 0; font-size: 18px; color: #e50914;}
-        .ep-close-btn { background: transparent; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: 0.2s;}
-        .ep-close-btn:hover { background: #e50914; border-color: #e50914;}
-        .ep-list-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .ep-item { background: #333; padding: 10px 5px; border-radius: 5px; text-decoration: none; color: white; text-align: center; font-size: 14px; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-        .ep-item:hover { background: #555; }
-        .ep-item.active { background: #e50914; font-weight: bold; pointer-events: none; box-shadow: 0 0 10px rgba(229,9,20,0.5);}
+        .ep-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+        .ep-header h3 { margin: 0; font-size: 17px; color: #e50914; font-weight: bold;}
+        .ep-close-btn { background: transparent; color: #aaa; border: 1px solid #444; padding: 5px 12px; border-radius: 5px; cursor: pointer; transition: 0.2s; font-size: 13px;}
+        .ep-close-btn:hover { background: #e50914; border-color: #e50914; color: white;}
+        /* Tab server trong panel */
+        .panel-server-tabs { display: flex; gap: 6px; padding: 10px 16px; flex-wrap: wrap; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; background: rgba(255,255,255,0.02); }
+        .panel-sv-tab { padding: 4px 12px; border-radius: 16px; border: 1px solid #444; background: transparent; color: #aaa; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+        .panel-sv-tab.active { background: #e50914; border-color: #e50914; color: white; }
+        .panel-sv-tab:hover:not(.active) { border-color: #888; color: white; }
+        /* Grid tập */
+        .ep-list-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 14px 16px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; align-content: start; }
+        .ep-item { background: #252525; padding: 9px 4px; border-radius: 6px; text-decoration: none; color: #ccc; text-align: center; font-size: 13px; font-weight: bold; transition: 0.2s; border: 1px solid #333; }
+        .ep-item:hover { background: #3a3a3a; color: white; border-color: #555; }
+        .ep-item.active { background: #e50914; color: white; font-weight: bold; pointer-events: none; border-color: #e50914; box-shadow: 0 0 8px rgba(229,9,20,0.4); }
     </style>
 </head>
 <body>
@@ -51,13 +60,16 @@
     <div class="artplayer-app" id="player-container"></div>
     <div class="error-msg" id="error-msg"><h2>Không tìm thấy nguồn phát!</h2></div>
 
+    <!-- Overlay đóng panel khi click ra ngoài -->
+    <div class="ep-overlay" id="epOverlay" onclick="closePanel()"></div>
     <div class="episodes-panel" id="episodesPanel">
         <div class="ep-header">
-            <h3>Danh sách tập</h3>
-            <button class="ep-close-btn" onclick="document.getElementById('episodesPanel').classList.remove('open')">Đóng ✕</button>
+            <h3>📋 Danh sách tập</h3>
+            <button class="ep-close-btn" onclick="closePanel()">✕ Đóng</button>
         </div>
+        <div class="panel-server-tabs" id="panelServerTabs"></div>
         <div class="ep-list-container" id="epListContainer">
-            <p style="grid-column: span 2; text-align: center; color: #aaa;">Đang tải...</p>
+            <p style="grid-column: span 4; text-align: center; color: #aaa; padding: 20px 0;">Đang tải...</p>
         </div>
     </div>
 
@@ -65,6 +77,18 @@
         const urlParams = new URLSearchParams(window.location.search);
         let videoUrl = decodeURIComponent(urlParams.get('url'));
         let slug = urlParams.get('slug'); 
+
+        // Hàm mở/đóng panel + overlay
+        function openPanel() {
+            document.getElementById('episodesPanel').classList.add('open');
+            document.getElementById('epOverlay').classList.add('open');
+        }
+        function closePanel() {
+            document.getElementById('episodesPanel').classList.remove('open');
+            document.getElementById('epOverlay').classList.remove('open');
+        }
+        // Đóng panel bằng phím Escape
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
         // Fix lỗi ấn nút back bị chuyển qua lại giữa các tập đã xem
         const backBtn = document.getElementById('backBtn');
@@ -192,6 +216,26 @@
                             episodes.push(s);
                         });
                     }
+
+                    // Trích xuất thông tin phim để lưu history (ảnh, tên, năm)
+                    let movieMeta = { name: '', thumb: '', year: '' };
+                    try {
+                        const ophimData = results[0].status === 'fulfilled' ? results[0].value : null;
+                        const kkData = results[1].status === 'fulfilled' ? results[1].value : null;
+                        
+                        let movieObj = ophimData?.data?.item || ophimData?.movie || kkData?.movie || kkData?.data?.item || null;
+                        let imgDomain = ophimData?.data?.APP_DOMAIN_CDN_IMAGE || kkData?.APP_DOMAIN_CDN_IMAGE || 'https://img.ophim.live';
+                        
+                        if (movieObj) {
+                            movieMeta.name = movieObj.name || '';
+                            movieMeta.year = movieObj.year || '';
+                            let thumb = movieObj.thumb_url || movieObj.poster_url || '';
+                            if (thumb && !thumb.startsWith('http')) {
+                                thumb = imgDomain.includes('phimimg') ? `${imgDomain}/${thumb}` : `${imgDomain}/uploads/movies/${thumb}`;
+                            }
+                            movieMeta.thumb = thumb;
+                        }
+                    } catch(e) {}
                         
                     if (episodes.length > 0) {
                         // Nhúng panel vào trong Artplayer để nó hiển thị được khi Fullscreen
@@ -206,129 +250,168 @@
                             position: 'right',
                             html: '<div style="display:flex; align-items:center; padding: 0 10px; cursor: pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>',
                             tooltip: 'Danh sách tập',
-                            click: function () {
-                                document.getElementById('episodesPanel').classList.add('open');
-                            }
+                            click: function () { openPanel(); }
                         });
 
-                        // 2. Render danh sách tập ra thanh Panel (Đa Server)
+                        // 2. Render danh sách tập vào Panel với Tab Server
                         const epListContainer = document.getElementById('epListContainer');
-                        epListContainer.innerHTML = '';
-                        
-                        let hasNextEp = false;
-                        let nextEpUrl = '';
-                        let nextEpName = '';
+                        const panelServerTabs = document.getElementById('panelServerTabs');
 
-                        episodes.forEach(server => {
-                            // Tiêu đề Server
-                            const serverHeading = document.createElement('div');
-                            serverHeading.style.gridColumn = '1 / -1';
-                            serverHeading.style.marginTop = '15px';
-                            serverHeading.style.color = '#e50914';
-                            serverHeading.style.fontWeight = 'bold';
-                            serverHeading.style.fontSize = '15px';
-                            serverHeading.innerText = `▶ ${server.server_name}`;
-                            epListContainer.appendChild(serverHeading);
-                            
-                            server.server_data.forEach((ep, index) => {
+                        // Nhóm episodes thành các server riêng biệt
+                        const serverGroups = episodes.map(sv => ({
+                            label: sv.server_name.includes('OPhim') ? 'SV1' : sv.server_name.includes('KKPhim') ? 'SV2' : sv.server_name.split(' - ')[0],
+                            server: sv
+                        }));
+
+                        // Tìm server đang active (chứa tập đang xem)
+                        let activeSvIdx = 0;
+                        serverGroups.forEach((g, i) => {
+                            if (g.server.server_data.some(ep => ep.link_m3u8 === videoUrl)) activeSvIdx = i;
+                        });
+
+                        function renderPanelEps(svIdx) {
+                            const sv = serverGroups[svIdx].server;
+                            epListContainer.innerHTML = '';
+                            let hasNextEp = false, nextEpUrl = '', nextEpName = '';
+
+                            sv.server_data.forEach((ep, index) => {
                                 const isActive = (ep.link_m3u8 === videoUrl);
                                 const activeClass = isActive ? 'active' : '';
-                                const epUrl = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(server.server_name)}`;
-                                
-                                // 3. Xử lý logic Tập hiện tại và Tập tiếp theo
+                                const epUrl = `watch.html?url=${encodeURIComponent(ep.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(sv.server_name)}`;
+
                                 if (isActive) {
-                                    // Bắt đầu logic tua thời gian bằng cách so khớp tên tập gốc (vd: "Tập 6")
                                     const epName = ep.name;
+                                    // Chuẩn hóa số tập để so sánh đúng khi đổi server
+                                    const epNum = epName.replace(/^Tập\s*/i, '').trim();
                                     let progressData = JSON.parse(localStorage.getItem('videoProgress')) || {};
-                                    
-                                    // Migrate dữ liệu cũ nếu nó là number
+
                                     if (typeof progressData[slug] === 'number') {
-                                        progressData[slug] = { time: progressData[slug], epName: epName };
-                                    } else if (progressData[slug] && progressData[slug].videoUrl) {
-                                        // Migrate từ videoUrl sang epName
-                                        progressData[slug] = { time: progressData[slug].time, epName: epName };
+                                        progressData[slug] = { time: progressData[slug], epNum: epNum };
+                                    } else if (progressData[slug] && (progressData[slug].videoUrl || progressData[slug].epName)) {
+                                        const oldName = progressData[slug].epName || '';
+                                        progressData[slug] = { time: progressData[slug].time, epNum: oldName.replace(/^Tập\s*/i, '').trim() };
                                     }
 
-                                    if (progressData[slug] && progressData[slug].time > 0 && progressData[slug].epName === epName) {
-                                        // Đợi video load xong metadata mới tua
+                                    if (progressData[slug] && progressData[slug].time > 0 && progressData[slug].epNum === epNum) {
                                         art.once('video:loadedmetadata', () => {
                                             art.currentTime = progressData[slug].time;
-                                            art.notice.show = `Đã tự động tua đến phút ${Math.floor(progressData[slug].time / 60)}`;
+                                            art.notice.show = `Đã tua đến phút ${Math.floor(progressData[slug].time / 60)}`;
                                         });
-                                        // Đề phòng trường hợp đã load metadata trước đó
-                                        if (art.video.readyState >= 1) {
-                                            art.currentTime = progressData[slug].time;
-                                        }
+                                        if (art.video.readyState >= 1) art.currentTime = progressData[slug].time;
                                     }
-                                    
+
                                     art.on('video:timeupdate', () => {
                                         let currentTime = Math.floor(art.currentTime);
                                         if (currentTime % 5 === 0 && currentTime > 0) {
-                                            progressData[slug] = { time: currentTime, epName: epName };
+                                            progressData[slug] = { time: currentTime, epNum: epNum };
                                             localStorage.setItem('videoProgress', JSON.stringify(progressData));
-                                            if(currentTime % 15 === 0 && window.syncToCloud) {
-                                                window.syncToCloud('videoProgress', progressData);
-                                            }
+                                            if (currentTime % 15 === 0 && window.syncToCloud) window.syncToCloud('videoProgress', progressData);
                                         }
                                     });
 
-                                    // Ghi lịch sử đúng tên tập + server
-                                    let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
-                                    if (history[slug]) {
-                                        let eName = `[${server.server_name}] ` + (ep.name.startsWith('Tập') || ep.name === 'Full' ? ep.name : 'Tập ' + ep.name);
-                                        history[slug].epName = eName;
-                                        localStorage.setItem('watchHistory', JSON.stringify(history));
-                                        if (window.syncToCloud) window.syncToCloud('watchHistory', history);
-                                    }
+                                    // Nút Skip Intro — chỉ hiện trong 60s đầu
+                                    let skipIntroDismissed = false;
+                                    art.controls.add({
+                                        position: 'right',
+                                        html: '<span id="skipIntroBtn" style="font-size:13px;font-weight:bold;padding:4px 10px;border:1px solid rgba(255,255,255,0.5);border-radius:4px;cursor:pointer;color:white;background:rgba(0,0,0,0.6);white-space:nowrap;">Bỏ qua Intro</span>',
+                                        tooltip: 'Tua qua 60 giây đầu',
+                                        click: function () {
+                                            art.currentTime = Math.max(art.currentTime + 60, 61);
+                                            skipIntroDismissed = true;
+                                            const btn = document.getElementById('skipIntroBtn');
+                                            if (btn) btn.closest('.art-control').style.display = 'none';
+                                            art.notice.show = 'Đã bỏ qua intro';
+                                        }
+                                    });
+                                    // Ẩn nút khi vượt qua 60s (kể cả tua thủ công)
+                                    art.on('video:timeupdate', () => {
+                                        if (skipIntroDismissed) return;
+                                        const btn = document.getElementById('skipIntroBtn');
+                                        if (!btn) return;
+                                        const ctrl = btn.closest('.art-control');
+                                        if (ctrl) ctrl.style.display = art.currentTime >= 60 ? 'none' : '';
+                                    });
 
-                                    // Có tập tiếp theo không?
-                                    if (index < server.server_data.length - 1) {
+                                    // Ghi lịch sử từ watch.html (với ảnh và thông tin đầy đủ)
+                                    art.once('video:play', () => {
+                                        let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+                                        const epTitle = (ep.name.startsWith('Tập') || ep.name === 'Full') ? ep.name : 'Tập ' + ep.name;
+                                        const eName = `[${sv.server_name}] ${epTitle}`;
+                                        if (!history[slug] || history[slug].epName !== eName) {
+                                            const existing = history[slug] || {};
+                                            history[slug] = {
+                                                name: existing.name || movieMeta.name || slug,
+                                                thumb: existing.thumb || movieMeta.thumb || '',
+                                                year: existing.year || movieMeta.year || '',
+                                                epName: eName, time: Date.now(),
+                                                url: ep.link_m3u8, server: sv.server_name
+                                            };
+                                            localStorage.setItem('watchHistory', JSON.stringify(history));
+                                            if (window.syncToCloud) window.syncToCloud('watchHistory', history);
+                                        }
+                                    });
+
+                                    // Tập tiếp theo
+                                    if (index < sv.server_data.length - 1) {
                                         hasNextEp = true;
-                                        const nextEp = server.server_data[index + 1];
+                                        const nextEp = sv.server_data[index + 1];
                                         nextEpName = nextEp.name;
-                                        nextEpUrl = `watch.html?url=${encodeURIComponent(nextEp.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(server.server_name)}`;
+                                        nextEpUrl = `watch.html?url=${encodeURIComponent(nextEp.link_m3u8)}&slug=${slug}&server=${encodeURIComponent(sv.server_name)}`;
                                     }
                                 }
 
-                                // Render nút
-                                const epNameShort = ep.name.replace('Tập ', 'T'); 
-                                epListContainer.innerHTML += `<a href="${epUrl}" class="ep-item ${activeClass}">${epNameShort}</a>`;
+                                const epNameShort = ep.name.replace(/^Tập\s*/i, '');
+                                epListContainer.innerHTML += `<a href="${epUrl}" class="ep-item ${activeClass}">${epNameShort || ep.name}</a>`;
                             });
+
+                            // Scroll đến tập đang active
+                            setTimeout(() => {
+                                const activeEl = epListContainer.querySelector('.ep-item.active');
+                                if (activeEl) activeEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                            }, 100);
+
+                            // Nút next ep
+                            if (hasNextEp) {
+                                art.controls.add({
+                                    position: 'right',
+                                    html: '<div style="display:flex;align-items:center;padding:0 10px;cursor:pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></div>',
+                                    tooltip: 'Tập tiếp theo: ' + nextEpName,
+                                    click: function () { window.location.href = nextEpUrl; }
+                                });
+                                art.setting.add({
+                                    html: 'Chuyển Tập Tiếp Theo',
+                                    icon: '⏭️', tooltip: nextEpName,
+                                    click: function () { window.location.href = nextEpUrl; }
+                                });
+                                art.on('video:ended', () => {
+                                    art.notice.show = 'Đang tự động chuyển ' + nextEpName + '...';
+                                    setTimeout(() => { window.location.href = nextEpUrl; }, 3000);
+                                });
+                            }
+                        }
+
+                        // Tạo tabs server trong panel
+                        serverGroups.forEach((g, idx) => {
+                            const tab = document.createElement('button');
+                            tab.className = 'panel-sv-tab' + (idx === activeSvIdx ? ' active' : '');
+                            tab.textContent = g.label;
+                            tab.addEventListener('click', () => {
+                                panelServerTabs.querySelectorAll('.panel-sv-tab').forEach(t => t.classList.remove('active'));
+                                tab.classList.add('active');
+                                activeSvIdx = idx;
+                                renderPanelEps(idx);
+                            });
+                            panelServerTabs.appendChild(tab);
                         });
 
-                        // Xử lý nút Tập Tiếp Theo
-                        if (hasNextEp) {
-                            // Đưa nút Next ra ngoài thành Icon
-                            art.controls.add({
-                                position: 'right',
-                                html: '<div style="display:flex; align-items:center; padding: 0 10px; cursor: pointer;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></div>',
-                                tooltip: 'Tập tiếp theo: ' + nextEpName,
-                                click: function () {
-                                    window.location.href = nextEpUrl;
-                                }
-                            });
-
-                            art.setting.add({
-                                html: 'Chuyển Tập Tiếp Theo',
-                                icon: '⏭️',
-                                tooltip: nextEpName,
-                                click: function () {
-                                    window.location.href = nextEpUrl;
-                                }
-                            });
-                            art.on('video:ended', () => {
-                                art.notice.show = 'Đang tự động chuyển ' + nextEpName + '...';
-                                setTimeout(() => {
-                                    window.location.href = nextEpUrl;
-                                }, 3000);
-                            });
-                        }
+                        renderPanelEps(activeSvIdx);
                     }
                 })
                 .catch(err => console.error("Lỗi API tập phim:", err));
             }
         }
     </script>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
