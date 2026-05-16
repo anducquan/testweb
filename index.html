@@ -225,10 +225,33 @@
             if (movie.tmdb && movie.tmdb.vote_average > 0) badgeHTML = `<div class="imdb-badge">⭐ ${movie.tmdb.vote_average.toFixed(1)}</div>`;
             else if (movie.imdb && movie.imdb.score > 0) badgeHTML = `<div class="imdb-badge">⭐ ${movie.imdb.score}</div>`;
 
+            let epBadgeHTML = '';
+            if (movie.episode_current) {
+                let current = movie.episode_current;
+                let total = movie.episode_total || '?';
+                let match = current.match(/Tập (\d+)/i);
+                let currentNum = match ? match[1] : current;
+                
+                if (current.toLowerCase().includes('full') || current.toLowerCase().includes('hoàn tất')) {
+                    epBadgeHTML = `<div class="ep-badge">${total !== '?' && total !== '' && total !== '0' ? total + '/' + total : 'Full'}</div>`;
+                } else {
+                    if (total === '?' || total === '' || total === '0') {
+                        if (/^\d+$/.test(currentNum)) {
+                            epBadgeHTML = `<div class="ep-badge">${currentNum} Tập</div>`;
+                        } else {
+                            epBadgeHTML = `<div class="ep-badge">${current}</div>`;
+                        }
+                    } else {
+                        epBadgeHTML = `<div class="ep-badge">${currentNum}/${total}</div>`;
+                    }
+                }
+            }
+
             return `
                 <a href="detail.html?slug=${movie.slug}" class="movie-card">
                     <div class="movie-poster-container">
                         ${badgeHTML}
+                        ${epBadgeHTML}
                         <img src="${posterUrl}" alt="${movie.name}" class="movie-poster" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
                     </div>
                     <div class="movie-info">
@@ -262,12 +285,32 @@
 
                 slugs.forEach(slug => {
                     const m = history[slug];
+                    
+                    let epBadgeHTML = '';
+                    if (m.epCurrent) {
+                        let current = m.epCurrent;
+                        let total = m.epTotal || '?';
+                        let match = current.match(/Tập (\d+)/i);
+                        let currentNum = match ? match[1] : current;
+                        if (current.toLowerCase().includes('full') || current.toLowerCase().includes('hoàn tất')) {
+                            epBadgeHTML = `<div class="ep-badge">${total !== '?' && total !== '' && total !== '0' ? total + '/' + total : 'Full'}</div>`;
+                        } else {
+                            if (total === '?' || total === '' || total === '0') {
+                                if (/^\d+$/.test(currentNum)) epBadgeHTML = `<div class="ep-badge">${currentNum} Tập</div>`;
+                                else epBadgeHTML = `<div class="ep-badge">${current}</div>`;
+                            } else {
+                                epBadgeHTML = `<div class="ep-badge">${currentNum}/${total}</div>`;
+                            }
+                        }
+                    }
+
                     rowHistory.innerHTML += `
                         <div class="movie-card" style="position: relative;">
                             <button onclick="removeHistory(event, '${slug}')" style="position: absolute; top: 5px; right: 5px; background: rgba(229, 9, 20, 0.9); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; font-weight: bold; cursor: pointer; z-index: 20; display: flex; align-items: center; justify-content: center;" title="Xóa">✕</button>
                             <a href="detail.html?slug=${slug}" style="text-decoration: none; color: inherit; display: block;">
                                 <div class="movie-poster-container">
                                     <div class="imdb-badge" style="background: var(--primary-color); color: white; left: 5px; right: auto; top: 5px; z-index: 2;">Tập ${m.epName.replace('Tập ', 'T')}</div>
+                                    ${epBadgeHTML}
                                     <img src="${m.thumb}" alt="${m.name}" class="movie-poster" loading="lazy" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
                                 </div>
                                 <div class="movie-info">
@@ -283,6 +326,47 @@
             }
         }
 
+        window.backfillHistoryData = async function() {
+            let history = JSON.parse(localStorage.getItem('watchHistory')) || {};
+            let slugsToUpdate = Object.keys(history).filter(slug => !history[slug].epCurrent);
+            if (slugsToUpdate.length > 0) {
+                let updated = false;
+                
+                await Promise.all(slugsToUpdate.map(async (slug) => {
+                    try {
+                        let res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
+                        let data = await res.json();
+                        let movieObj = null;
+                        
+                        if (data && data.status === 'success' && data.data && data.data.item) {
+                            movieObj = data.data.item;
+                        } else {
+                            let resKk = await fetch(`https://phimapi.com/phim/${slug}`);
+                            let dataKk = await resKk.json();
+                            if (dataKk && (dataKk.status === true || dataKk.status === 'success')) {
+                                movieObj = dataKk.movie || (dataKk.data && dataKk.data.item);
+                            }
+                        }
+
+                        if (movieObj) {
+                            history[slug].epCurrent = movieObj.episode_current || '';
+                            history[slug].epTotal = movieObj.episode_total || '';
+                            updated = true;
+                        } else {
+                            history[slug].epCurrent = '?';
+                            updated = true;
+                        }
+                    } catch(e) {}
+                }));
+
+                if (updated) {
+                    localStorage.setItem('watchHistory', JSON.stringify(history));
+                    if (window.syncToCloud) window.syncToCloud('watchHistory', history);
+                    loadHistory();
+                }
+            }
+        };
+
         window.removeHistory = function (event, slug) {
             event.preventDefault();
             event.stopPropagation();
@@ -295,6 +379,7 @@
 
         // KHỞI CHẠY TRANG CHỦ
         loadHistory();
+        backfillHistoryData();
         loadRow('home', 'row-new');
         loadRow('quoc-gia/au-my', 'row-usuk');
         loadRow('quoc-gia/han-quoc', 'row-korea');

@@ -182,17 +182,22 @@
             }
 
             try {
-                // Gọi song song: thông tin cá nhân + filmography
+                // Gọi song song: thông tin cá nhân (lấy các bản dịch tên) + filmography
                 const [personRes, creditsRes] = await Promise.all([
-                    fetch(`https://api.themoviedb.org/3/person/${tmdbId}?api_key=${TMDB_KEY}&language=vi-VN`).then(r => r.json()),
+                    fetch(`https://api.themoviedb.org/3/person/${tmdbId}?api_key=${TMDB_KEY}&language=vi-VN&append_to_response=translations`).then(r => r.json()),
                     fetch(`https://api.themoviedb.org/3/person/${tmdbId}/combined_credits?api_key=${TMDB_KEY}&language=vi-VN`).then(r => r.json())
                 ]);
 
                 // Lấy tên hiển thị chuẩn (ưu tiên tên Latin)
                 let displayName = personRes.name || nameFromUrl;
-                if (!/^[A-Za-z0-9\s\.\-]+$/.test(displayName) && personRes.also_known_as) {
-                    const latinName = personRes.also_known_as.find(n => /^[A-Za-z0-9\s\.\-]+$/.test(n));
-                    if (latinName) displayName = latinName;
+                if (!/^[A-Za-z0-9\s\.\-]+$/.test(displayName)) {
+                    // Cố gắng tìm tên tiếng Anh trong bản dịch
+                    if (personRes.translations && personRes.translations.translations) {
+                        const enTrans = personRes.translations.translations.find(t => t.iso_639_1 === 'en');
+                        if (enTrans && enTrans.data && enTrans.data.name && enTrans.data.name.trim() !== '') {
+                            displayName = enTrans.data.name;
+                        }
+                    }
                 }
 
                 const avatarUrl = personRes.profile_path 

@@ -104,12 +104,11 @@
             loader.style.display = 'block';
             
             try {
-                // GỌI SONG SONG CÁC API (Phim OPhim, Phim KKPhim, Hình Diễn Viên)
+                // GỌI SONG SONG CÁC API (Phim OPhim, Phim KKPhim)
                 const pOphim = fetch(`https://ophim1.com/v1/api/phim/${slug}`).then(r => r.json());
                 const pKkphim = fetch(`https://phimapi.com/phim/${slug}`).then(r => r.json());
-                const pPeoples = fetch(`https://ophim1.com/v1/api/phim/${slug}/peoples`).then(r => r.json()).catch(() => null);
 
-                let results = await Promise.allSettled([pOphim, pKkphim, pPeoples]);
+                let results = await Promise.allSettled([pOphim, pKkphim]);
                 
                 // Trích xuất năm của phim trên OPhim để làm chuẩn
                 let ophimYear = null;
@@ -197,9 +196,39 @@
                 // ================= XỬ LÝ NÚT DIỄN VIÊN BẤM ĐƯỢC VÀ HÌNH ẢNH =================
                 let actorsHTML = '<span style="color:#aaa;">Đang cập nhật</span>';
                 
-                // Ưu tiên hiển thị hình ảnh diễn viên từ API Peoples (nếu có)
-                if (results[2] && results[2].status === 'fulfilled' && results[2].value && (results[2].value.status === 'success' || results[2].value.status === true || results[2].value.success === true) && results[2].value.data && results[2].value.data.peoples && results[2].value.data.peoples.length > 0) {
-                    const peoplesData = results[2].value.data;
+                // Lấy thông tin diễn viên bằng TMDB (để đảm bảo tên tiếng Anh) hoặc fallback OPhim
+                let peoplesData = null;
+                let tmdbId = movie.tmdb?.id || (kkphimMovie && kkphimMovie.tmdb ? kkphimMovie.tmdb.id : null);
+                let tmdbType = movie.tmdb?.type || (kkphimMovie && kkphimMovie.tmdb ? kkphimMovie.tmdb.type : 'movie');
+
+                if (tmdbId) {
+                    try {
+                        const tmdbRes = await fetch(`https://api.themoviedb.org/3/${tmdbType}/${tmdbId}/credits?api_key=5698002a4036f06fe874295cebfe66a5&language=en-US`).then(r => r.json());
+                        if (tmdbRes && tmdbRes.cast && tmdbRes.cast.length > 0) {
+                            peoplesData = {
+                                profile_sizes: { w185: "https://image.tmdb.org/t/p/w185" },
+                                peoples: tmdbRes.cast.slice(0, 20).map(c => ({
+                                    tmdb_people_id: c.id,
+                                    name: c.name,
+                                    character: c.character,
+                                    profile_path: c.profile_path,
+                                    also_known_as: [c.name]
+                                }))
+                            };
+                        }
+                    } catch(e) {}
+                }
+                if (!peoplesData) {
+                    try {
+                        const opRes = await fetch(`https://ophim1.com/v1/api/phim/${slug}/peoples`).then(r => r.json());
+                        if (opRes && opRes.data && opRes.data.peoples && opRes.data.peoples.length > 0) {
+                            peoplesData = opRes.data;
+                        }
+                    } catch(e) {}
+                }
+
+                // Ưu tiên hiển thị hình ảnh diễn viên từ peoplesData
+                if (peoplesData && peoplesData.peoples && peoplesData.peoples.length > 0) {
                     const baseImgUrl = peoplesData.profile_sizes ? (peoplesData.profile_sizes.w185 || peoplesData.profile_sizes.original) : 'https://image.tmdb.org/t/p/w185';
                     
                     actorsHTML = '<div class="actor-list" style="display:flex; overflow-x:auto; gap:15px; padding-bottom:10px;">';
@@ -277,11 +306,35 @@
                         resumeBtnHTML = `<a href="${playUrl}" class="save-btn" style="background: #e50914; margin-top: 10px; text-decoration: none; color: white; display: block; width: 100%; box-sizing: border-box;">▶ Xem Tiếp ${shortName}</a>`;
                     }
                 }
+                let epBadgeHTML = '';
+                if (movie.episode_current) {
+                    let current = movie.episode_current;
+                    let total = movie.episode_total || '?';
+                    let match = current.match(/Tập (\d+)/i);
+                    let currentNum = match ? match[1] : current;
+                    
+                    if (current.toLowerCase().includes('full') || current.toLowerCase().includes('hoàn tất')) {
+                        epBadgeHTML = `<div class="ep-badge" style="bottom: 10px; right: 10px; font-size: 13px; padding: 4px 8px;">${total !== '?' && total !== '' && total !== '0' ? total + '/' + total : 'Full'}</div>`;
+                    } else {
+                        if (total === '?' || total === '' || total === '0') {
+                            if (/^\d+$/.test(currentNum)) {
+                                epBadgeHTML = `<div class="ep-badge" style="bottom: 10px; right: 10px; font-size: 13px; padding: 4px 8px;">${currentNum} Tập</div>`;
+                            } else {
+                                epBadgeHTML = `<div class="ep-badge" style="bottom: 10px; right: 10px; font-size: 13px; padding: 4px 8px;">${current}</div>`;
+                            }
+                        } else {
+                            epBadgeHTML = `<div class="ep-badge" style="bottom: 10px; right: 10px; font-size: 13px; padding: 4px 8px;">${currentNum}/${total}</div>`;
+                        }
+                    }
+                }
 
                 container.innerHTML = `
                     <div class="detail-container">
                         <div class="detail-poster">
-                            <img src="${posterUrl}" alt="${movie.name}" class="detail-poster-img" onerror="this.src='https://via.placeholder.com/300x450?text=Loi+Anh'">
+                            <div style="position: relative; display: inline-block;">
+                                <img src="${posterUrl}" alt="${movie.name}" class="detail-poster-img" onerror="this.src='https://via.placeholder.com/300x450?text=Loi+Anh'">
+                                ${epBadgeHTML}
+                            </div>
                             <div style="width: 100%;">
                                 <button id="saveMovieBtn" class="${btnClass}" style="width: 100%;">${btnText}</button>
                                 ${resumeBtnHTML}
@@ -324,7 +377,7 @@
                         this.textContent = '❤️ Lưu Phim';
                         this.className = 'save-btn';
                     } else {
-                        savedMovies[slug] = { name: movie.name, thumb: posterUrl, year: movie.year };
+                        savedMovies[slug] = { name: movie.name, thumb: posterUrl, year: movie.year, epCurrent: movie.episode_current, epTotal: movie.episode_total };
                         this.textContent = '❌ Bỏ Lưu';
                         this.className = 'save-btn saved';
                     }

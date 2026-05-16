@@ -124,12 +124,14 @@ auth.onAuthStateChanged((user) => {
 
           if (data.savedMovies) {
             localStorage.setItem('savedMovies', JSON.stringify(data.savedMovies));
-            if (window.loadSavedMovies) window.loadSavedMovies(); // Refresh UI nếu đang ở trang Tủ Phim
+            if (window.loadSavedMovies) window.loadSavedMovies();
+            if (window.backfillSavedMovies) window.backfillSavedMovies();
             needsReload = true;
           }
           if (data.watchHistory) {
             localStorage.setItem('watchHistory', JSON.stringify(data.watchHistory));
-            if (window.loadHistory) window.loadHistory(); // Refresh UI nếu đang ở trang Chủ
+            if (window.loadHistory) window.loadHistory();
+            if (window.backfillHistoryData) window.backfillHistoryData();
             needsReload = true;
           }
           if (data.videoProgress) {

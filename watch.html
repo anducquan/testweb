@@ -234,6 +234,8 @@
                                 thumb = imgDomain.includes('phimimg') ? `${imgDomain}/${thumb}` : `${imgDomain}/uploads/movies/${thumb}`;
                             }
                             movieMeta.thumb = thumb;
+                            movieMeta.epCurrent = movieObj.episode_current || '';
+                            movieMeta.epTotal = movieObj.episode_total || '';
                         }
                     } catch(e) {}
                         
@@ -347,7 +349,9 @@
                                                 thumb: existing.thumb || movieMeta.thumb || '',
                                                 year: existing.year || movieMeta.year || '',
                                                 epName: eName, time: Date.now(),
-                                                url: ep.link_m3u8, server: sv.server_name
+                                                url: ep.link_m3u8, server: sv.server_name,
+                                                epCurrent: movieMeta.epCurrent || existing.epCurrent || '',
+                                                epTotal: movieMeta.epTotal || existing.epTotal || ''
                                             };
                                             localStorage.setItem('watchHistory', JSON.stringify(history));
                                             if (window.syncToCloud) window.syncToCloud('watchHistory', history);

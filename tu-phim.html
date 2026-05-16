@@ -102,11 +102,32 @@
 
             slugs.reverse().forEach(slug => {
                 const movie = savedMovies[slug];
+                let epBadgeHTML = '';
+                if (movie.epCurrent) {
+                    let current = movie.epCurrent;
+                    let total = movie.epTotal || '?';
+                    let match = current.match(/Tập (\d+)/i);
+                    let currentNum = match ? match[1] : current;
+                    if (current.toLowerCase().includes('full') || current.toLowerCase().includes('hoàn tất')) {
+                        epBadgeHTML = `<div class="ep-badge">${total !== '?' && total !== '' && total !== '0' ? total + '/' + total : 'Full'}</div>`;
+                    } else {
+                        if (total === '?' || total === '' || total === '0') {
+                            if (/^\d+$/.test(currentNum)) epBadgeHTML = `<div class="ep-badge">${currentNum} Tập</div>`;
+                            else epBadgeHTML = `<div class="ep-badge">${current}</div>`;
+                        } else {
+                            epBadgeHTML = `<div class="ep-badge">${currentNum}/${total}</div>`;
+                        }
+                    }
+                }
+
                 savedGrid.innerHTML += `
                     <div class="movie-card">
                         <button class="delete-btn" onclick="deleteMovie('${slug}')">✕</button>
                         <a href="detail.html?slug=${slug}" style="text-decoration: none; color: inherit; display: block;">
-                            <img src="${movie.thumb}" class="movie-poster" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
+                            <div class="movie-poster-container" style="position: relative;">
+                                ${epBadgeHTML}
+                                <img src="${movie.thumb}" class="movie-poster" onerror="this.src='https://via.placeholder.com/160x240?text=No+Image'">
+                            </div>
                             <div class="movie-info">
                                 <div class="movie-title">${movie.name}</div>
                             </div>
@@ -254,8 +275,49 @@
                 }
             }
         }
+        window.backfillSavedMovies = async function() {
+            let saved = JSON.parse(localStorage.getItem('savedMovies')) || {};
+            let slugsToUpdate = Object.keys(saved).filter(slug => !saved[slug].epCurrent);
+            if (slugsToUpdate.length > 0) {
+                let updated = false;
+
+                await Promise.all(slugsToUpdate.map(async (slug) => {
+                    try {
+                        let res = await fetch(`https://ophim1.com/v1/api/phim/${slug}`);
+                        let data = await res.json();
+                        let movieObj = null;
+
+                        if (data && data.status === 'success' && data.data && data.data.item) {
+                            movieObj = data.data.item;
+                        } else {
+                            let resKk = await fetch(`https://phimapi.com/phim/${slug}`);
+                            let dataKk = await resKk.json();
+                            if (dataKk && (dataKk.status === true || dataKk.status === 'success')) {
+                                movieObj = dataKk.movie || (dataKk.data && dataKk.data.item);
+                            }
+                        }
+
+                        if (movieObj) {
+                            saved[slug].epCurrent = movieObj.episode_current || '';
+                            saved[slug].epTotal = movieObj.episode_total || '';
+                            updated = true;
+                        } else {
+                            saved[slug].epCurrent = '?';
+                            updated = true;
+                        }
+                    } catch(e) {}
+                }));
+
+                if (updated) {
+                    localStorage.setItem('savedMovies', JSON.stringify(saved));
+                    if (window.syncToCloud) window.syncToCloud('savedMovies', saved);
+                    loadSavedMovies();
+                }
+            }
+        };
 
         loadSavedMovies();
+        backfillSavedMovies();
         autoImportFromLink();
     </script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
